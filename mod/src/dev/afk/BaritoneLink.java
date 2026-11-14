@@ -238,7 +238,6 @@ final class BaritoneLink {
         pathing.estimatedTicksToGoal().ifPresent(t -> {
             if (t < 20 * 3600) o.addProperty("etaSeconds", Math.round(t / 20.0));
         });
-        o.addProperty("legitMine", legit);
         return o;
     }
 

@@ -355,7 +355,7 @@ final class AfkHud implements HudElement {
             label(g, font, new Vec3(n[0] + 0.5, n[1] + 1.2, n[2] + 0.5), "DEST", me, pose, w, h, EMBER, a, 2);
         }
         if (target != null) label(g, font, target, targetLabel.isEmpty() ? "TARGET" : targetLabel.toUpperCase(Locale.ROOT), me, pose, w, h, EMBER, a, 2);
-        if (home != null) label(g, font, home.add(0, 1.5, 0), "HOME", me, pose, w, h, DIM, a * 3 / 4, 1);
+        if (home != null && me.distanceTo(home) > 10) label(g, font, home.add(0, 1.5, 0), "HOME", me, pose, w, h, DIM, a * 3 / 4, 1); // not while standing on it
 
         // What Herobrine can see.
         int n = 0;

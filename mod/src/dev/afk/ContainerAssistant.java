@@ -177,7 +177,7 @@ final class ContainerAssistant {
      * Sorts the container part of the open screen (or your main inventory) with ordinary clicks:
      * stacks merged, then grouped tools, armour, potions, food, ores, blocks, the rest. Returns clicks used.
      */
-    private int sort(Minecraft mc, AbstractContainerMenu menu, boolean playerInventory, boolean potionsFirst) {
+    int sort(Minecraft mc, AbstractContainerMenu menu, boolean playerInventory, boolean potionsFirst) {
         LocalPlayer p = mc.player;
         if (p == null || !menu.getCarried().isEmpty()) return 0;
         List<Integer> slots = new ArrayList<>();

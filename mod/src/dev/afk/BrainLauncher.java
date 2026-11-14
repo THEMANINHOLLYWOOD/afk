@@ -75,6 +75,17 @@ final class BrainLauncher {
         if (joinedAtMs == 0) joinedAtMs = now;
         boolean alive = process != null && process.isAlive();
         boolean brainTalking = now - BridgeServer.lastBrainContactMs() < 8000;
+        welcome(now);
+        // You handed over control and nobody is home: say so instead of leaving you watching a still camera.
+        if (!Afk.MODE.isAgent() || brainTalking) {
+            asleepSince = 0;
+        } else {
+            if (asleepSince == 0) asleepSince = now;
+            if (now - asleepSince > 45_000 && now - lastAsleepNoticeMs > 180_000) {
+                lastAsleepNoticeMs = now;
+                Afk.CHAT.showHerobrine("I'm not waking up. Type /afk status to see why, /afk login to sign in, or tap Tab to take control back.");
+            }
+        }
         if (alive || brainTalking || now - joinedAtMs < 5000) return;
         long backoff = Math.min(300_000, 20_000L * (1L << Math.min(4, failures)));
         if (now - lastLaunchMs < backoff) return;
@@ -88,6 +99,7 @@ final class BrainLauncher {
         String node = str(cfg, "node", "node");
         String script = str(cfg, "brainScript", Afk.dataDir().resolve("brain").resolve("agent.mjs").toString());
         if (!new File(script).isFile()) {
+            tellOnce("My brain is missing (" + script + "). Reinstall the AFK pack, or set brainScript in config/afk.json.");
             Afk.EVENTS.add("bridge", "brain script not found at " + script);
             Afk.LOG.warn("Herobrine's brain was not found at {}", script);
             failures++;
@@ -112,12 +124,41 @@ final class BrainLauncher {
             Afk.LOG.info("Started Herobrine's brain ({}): {} {}", str(cfg, "provider", "claude"), node, script);
         } catch (Exception e) {
             failures++;
+            tellOnce("I need Node.js to think, and I couldn't start it (" + node + "). Install Node 22 or newer (on a Mac: brew install node), then type /afk brain restart.");
             Afk.EVENTS.add("bridge", "could not start the brain: " + e.getMessage());
             Afk.LOG.warn("Could not start Herobrine's brain", e);
         }
     }
 
+    private boolean told;
+    private boolean welcomed;
+    private long asleepSince;
+    private long lastAsleepNoticeMs;
+
+    /** A few lines the first time you ever join a world with AFK. */
+    private void welcome(long now) {
+        if (welcomed || now - joinedAtMs < 6000) return;
+        welcomed = true;
+        try {
+            java.nio.file.Path flag = Afk.dataDir().resolve("welcomed");
+            if (Files.exists(flag)) return;
+            Files.createDirectories(flag.getParent());
+            Files.writeString(flag, "1\n");
+        } catch (Exception e) {
+            return;
+        }
+        Afk.CHAT.showHerobrine("AFK is ready. Tap Tab and I take over your character; tap Tab again and you're back.");
+        Afk.CHAT.showHerobrine("B is the cinematic camera. Talk to me in chat by starting with hb, or give me a job with /do. /afk shows everything.");
+    }
+
+    private void tellOnce(String message) {
+        if (told) return;
+        told = true;
+        Minecraft.getInstance().execute(() -> Afk.CHAT.showHerobrine(message));
+    }
+
     void restart() {
+        told = false;
         stop();
         lastLaunchMs = 0;
         failures = 0;

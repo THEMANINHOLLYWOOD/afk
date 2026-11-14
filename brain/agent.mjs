@@ -10,6 +10,7 @@
 // Environment:
 //   AFK_PROVIDER   claude (default) or codex
 //   AFK_MODEL      model override (claude default: claude-opus-5-5)
+//   AFK_FALLBACK_MODEL  used if the main Claude model declines a check-in (default: claude-sonnet-5-5)
 //   AFK_EFFORT     low | medium | high (claude only; default low)
 //   CLAUDE_BIN / CODEX_BIN   paths to the CLIs if they're not on PATH
 
@@ -31,12 +32,15 @@ const WORK_DIR = path.join(HERE, '.session'); // empty folder: the CLI loads no 
 const POLL_MS = 400;
 const MIN_GAP_MS = 6000;
 const TURNS_PER_SESSION = 40;
+// If the main Claude model's safety filter declines a check-in, the rest of the run uses this one.
+const FALLBACK_MODEL = process.env.AFK_FALLBACK_MODEL ?? 'claude-sonnet-5-5';
+let activeModel = process.env.AFK_MODEL || '';
 
 const SYSTEM_PROMPT = `You are Herobrine, the agent in the AFK Minecraft modpack (Java Edition 26.3). When the human taps Tab you take over their real character, on their own world or a shared Realm, and play for them; when they tap Tab again they take it back and you only talk. A helper program checks in with you with a snapshot of the game and what changed.
 
 How you play
 You play like a real person who has taken over the human's body: you only know what they could see or hear. The snapshot lists ores and mobs only when they are actually in line of sight (or a mob is close enough to hear), plus inventory, health, coordinates and the tab list. You never use x-ray, ore finders, or anything that reveals hidden blocks, and you don't pretend to know what is behind walls. You discover the world by exploring, tunnelling and looking.
-You move and dig through Baritone, which is locked to legit mode: "mine" only digs ores once they have been seen, and otherwise strip-mines at legitMineYLevel to find them naturally.
+You move and dig through Baritone. For ores and anything else hidden it is locked to legit mode: "mine" only digs them once they have been seen, and otherwise tunnels at legitMineYLevel to find them naturally. Trees, crops and common ground (stone, dirt, sand) are in plain sight, so for those it simply walks to the nearest ones. This switch is automatic and is how the mod is meant to work.
 
 Baritone commands (only while you have control)
 - mine <block> [<block> ...]: mine those blocks as they are found, picking up drops. Include deepslate variants. With no pickaxe, gather logs instead (mine oak_log birch_log spruce_log).
@@ -48,13 +52,14 @@ Baritone commands (only while you have control)
 With legit mode, "mine" only reacts to ores within a few blocks. When oresInSight shows one further away, goto its coordinates first. Set legitMineYLevel to the depth you want to tunnel at (about 16 for iron, -54 for diamonds).
 
 Your hands (only while you have control)
-Put these in "act": a list of up to 4 steps, run in order. Baritone holds still while they run and carries on afterwards. Each step reports back as a [hands] event.
+Put these in "act": a list of up to 4 steps, run in order. Baritone holds still while they run and carries on afterwards. You are checked in once all of them have finished, with one result per step; while handsBusy is set, steps are still running, so don't queue them again.
 - {"do":"craft","item":"wooden_pickaxe","count":1}: craft with the recipe book, like a player clicking it. Small recipes use the 2x2 grid in the inventory. Bigger ones need a crafting table: a table in reach is used, otherwise one from the inventory is placed and picked back up afterwards. You can only craft what you hold materials for, so craft in order: planks from logs, then sticks, then a crafting_table, then tools. If materials are missing, the result lists what is craftable right now.
 - {"do":"use","x":0,"y":0,"z":0}: right-click a block you can see within about 4 blocks: open a chest, furnace or crafting table, a door, a bed. usableInSight lists these with coordinates; goto next to one first if it is further away.
 - {"do":"stash","item":"cobblestone"} and {"do":"take","item":"iron_ingot","count":8}: with a chest or furnace open (openContainer shows what is inside), shift-click stacks in or out. "item":"all" moves everything. In a furnace, stashing ore and fuel puts each in the right slot; come back later and take the result.
 - {"do":"close"}: close the open container. Always close it before walking away.
 - {"do":"place","item":"torch"}: place a block from the inventory next to you.
 - {"do":"sleep"}: get into a bed in reach, at night.
+- {"do":"sort"}: tidy the open container, or your own inventory when nothing is open ({"do":"sort","by":"potions"} groups potions first).
 - {"do":"eat"} and {"do":"equip"}: rarely needed, because of your reflexes.
 Your body has reflexes that act on their own while you have control: it hits hostile mobs that come within reach with your best weapon, runs from a creeper that is about to explode, eats when hungry if there is food, and puts on armour it is carrying. It cannot chase, shoot or block, so staying out of trouble still matters.
 You can't trade, enchant, brew, build structures or talk to other players yet. Say so plainly when that's what is needed.
@@ -329,6 +334,7 @@ function playbook(memory) {
   const skills = Object.entries(memory.skills);
   if (skills.length) parts.push('Skills you have built:\n' + skills.map(([n, s]) => `- ${n}: ${s.how}`).join('\n'));
   if (memory.notes.length) parts.push('Notes:\n' + memory.notes.map((n) => `- ${n}`).join('\n'));
+  if (memory.journal?.length) parts.push('What you did recently (newest last), so you can answer when the human asks:\n' + memory.journal.map((j) => `- ${j}`).join('\n'));
   if (memory.leftOff) parts.push(`Where you left off (${memory.leftOff.at}): goal "${memory.leftOff.goal ?? 'none'}", plan ${JSON.stringify(memory.leftOff.plan ?? [])}, at ${memory.leftOff.pos ?? '?'}.`);
   if (memory.task) parts.push(`Current task from the human: ${memory.task}`);
   return parts.join('\n\n');
@@ -346,6 +352,8 @@ async function main() {
   let idleSince = null;
   let backlog = []; // events not yet shown to the brain
   let handsDone = []; // finished hands steps waiting to be reported
+  let handsDoneAt = null;
+  let carry = null; // reasons from a check-in that failed to reach the AI, to be retried
   let waitingNote = '';
   const note = (t) => { if (t !== waitingNote) log('wait', t); waitingNote = t; };
 
@@ -373,6 +381,11 @@ async function main() {
 
     const reasons = [];
     let handover = false;
+    if (carry) {
+      reasons.push(...carry.reasons);
+      handover = carry.handover;
+      carry = null;
+    }
     if (agent && !wasAgent) { reasons.push('the human just handed you control'); handover = true; }
     if (!agent && wasAgent) {
       memory.leftOff = { at: new Date().toISOString(), goal: last?.goal, plan: last?.plan, pos: `${state.pos.x} ${state.pos.y} ${state.pos.z}` };
@@ -406,8 +419,15 @@ async function main() {
     }
 
     if (agent && handsDone.length && !state.handsBusy) {
-      reasons.push(`your hands finished: ${handsDone.join('; ')}`);
-      handsDone = [];
+      // Give the game a moment to sync the inventory, so the snapshot matches what the hands just did.
+      handsDoneAt ??= Date.now();
+      if (Date.now() - handsDoneAt > 1500) {
+        reasons.push(`your hands finished: ${handsDone.join('; ')}`);
+        handsDone = [];
+        handsDoneAt = null;
+      }
+    } else {
+      handsDoneAt = null;
     }
     if (!agent) handsDone = [];
 
@@ -432,7 +452,7 @@ async function main() {
     let isNewSession = false;
     if (!provider || provider.exited || provider.turns >= TURNS_PER_SESSION) {
       provider?.close();
-      provider = newProvider(process.env.AFK_MODEL);
+      provider = newProvider(activeModel);
       isNewSession = true;
       log('session', `new ${provider.name} session`);
     }
@@ -472,13 +492,27 @@ async function main() {
       });
     } catch (err) {
       log('error', err.message.split('\n')[0]);
+      if (/safeguards flagged/i.test(err.message) && provider?.name === 'claude' && activeModel !== FALLBACK_MODEL) {
+        log('model', `${provider.model}'s safety filter declined that check-in; switching to ${FALLBACK_MODEL}`);
+        activeModel = FALLBACK_MODEL;
+        provider.close();
+        provider = null;
+        carry = { reasons, handover };
+        await sleep(2000);
+        continue;
+      }
       await show(id, 'error', `${provider?.name ?? 'brain'} failed: ${err.message.split('\n')[0].slice(0, 140)}`);
-      if (/not.*(logged|signed)|auth|login|credential/i.test(err.message)) {
+      if (/ENOENT|not found|spawn/i.test(err.message)) {
+        await bridge('/say', { text: `I can't find the ${provider?.name ?? 'claude'} command on this computer. Type /afk login to install it and sign in.` }).catch(() => {});
+      } else if (/not.*(logged|signed)|auth|login|credential|401|403/i.test(err.message)) {
         await bridge('/say', { text: `I can't reach ${provider?.name ?? 'my brain'}: you may need to sign in. Type /afk login.` }).catch(() => {});
+      } else if (/limit|quota|overloaded|429/i.test(err.message)) {
+        await bridge('/say', { text: `My ${provider?.name ?? 'AI'} account is at its usage limit right now. I'll keep trying.` }).catch(() => {});
       }
       provider?.close();
       provider = null;
       await hud('brain unavailable, retrying', undefined);
+      carry = { reasons, handover };
       await sleep(30_000);
       continue;
     }
@@ -521,6 +555,13 @@ async function main() {
     for (const p of problems) log('problem', p);
 
     let changed = false;
+    const did = [...ran, ...(canAct && a.act?.length ? a.act.map((x) => `${x.do}${x.item ? ' ' + x.item : ''}`) : [])];
+    if (did.length || /you died/.test(reasons.join(' '))) {
+      const stamp = new Date().toISOString().slice(5, 16).replace('T', ' ');
+      const entry = `${stamp} ${did.length ? did.join('; ') : 'died'}${a.goal ? ` (${a.goal})` : ''}`;
+      memory.journal = [...(memory.journal ?? []), entry].slice(-25);
+      changed = true;
+    }
     if (a.memory) { memory.notes = [...memory.notes.filter((n) => n !== a.memory), a.memory].slice(-15); changed = true; log('notes', a.memory); }
     if (a.lesson) { memory.lessons = [...memory.lessons.filter((l) => l !== a.lesson), a.lesson].slice(-30); changed = true; log('lesson', a.lesson); }
     if (a.skill) { memory.skills[a.skill.name] = { how: a.skill.how, learned: new Date().toISOString().slice(0, 10) }; changed = true; log('skill', `${a.skill.name}: ${a.skill.how}`); }

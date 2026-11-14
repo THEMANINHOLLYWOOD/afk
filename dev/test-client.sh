@@ -67,6 +67,8 @@ if i >= 0:
             shutil.copy(src, dst)
         print("test player now owns the world copy")
 PY
+# The same offline UUID for the session, so the player's save, recipe book and advancements stay together.
+UUID="$(python3 -c "import hashlib,uuid,sys; print(uuid.UUID(bytes=hashlib.md5(('OfflinePlayer:'+sys.argv[1]).encode()).digest(), version=3))" "$USERNAME")"
 CP="$(MC="$MC" V="$MCV" F="$FABRIC" python3 - <<'PY'
 import json, os
 mc, v, f = os.environ["MC"], os.environ["V"], os.environ["F"]
@@ -102,5 +104,5 @@ exec "$JAVA" -XstartOnFirstThread -XX:StackShadowPages=32 --enable-native-access
   -Dafk.dev=true "-Dafk.port=$PORT" \
   -cp "$CP" net.fabricmc.loader.impl.launch.knot.KnotClient \
   --username "$USERNAME" --version "$FABRIC" --gameDir "$TEST" --assetsDir "$MC/assets" --assetIndex "$ASSET_INDEX" \
-  --uuid 00000000-0000-0000-0000-000000000000 --accessToken 0 --clientId 0 --xuid 0 --versionType release \
+  --uuid "$UUID" --accessToken 0 --clientId 0 --xuid 0 --versionType release \
   --width 1280 --height 720 --quickPlaySingleplayer "$WORLD"

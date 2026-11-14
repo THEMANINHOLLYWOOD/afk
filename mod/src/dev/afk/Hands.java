@@ -95,7 +95,9 @@ final class Hands {
     String busyLabel() {
         Task t = current;
         if (fleeTicks > 0) return "running from a creeper";
-        return t == null ? null : t.label;
+        if (t != null) return t.label;
+        Task next = queue.peekFirst(); // between two steps: still busy
+        return next == null ? null : next.label;
     }
 
     /** Queue actions from the brain. Each is {"do": "...", ...}. Returns what was queued. */
@@ -116,7 +118,8 @@ final class Hands {
                 case "take" -> new MoveTask(false, itemOrAll(a), intOr(a, "count", Integer.MAX_VALUE));
                 case "close" -> new CloseTask();
                 case "equip" -> new EquipTask();
-                default -> throw new IllegalArgumentException("unknown action '" + what + "' (craft, use, place, eat, sleep, stash, take, close, equip)");
+                case "sort" -> new SortTask("potions".equalsIgnoreCase(str(a, "by")));
+                default -> throw new IllegalArgumentException("unknown action '" + what + "' (craft, use, place, eat, sleep, stash, take, close, equip, sort)");
             };
             queue.addLast(task);
             names.add(task.label);
@@ -628,6 +631,7 @@ final class Hands {
     private final class PlaceTask extends Task {
         private final String item;
         BlockPos placedAt;
+        private final List<BlockPos> refused = new ArrayList<>(); // spots the server would not accept
         private int previousSlot = -1;
         private int phase;
         private int placedTick;
@@ -658,8 +662,10 @@ final class Hands {
                         for (int dy = 0; dy >= -1; dy--) {
                             BlockPos target = feet.relative(d, ring).above(dy);
                             BlockPos support = target.below();
+                            if (refused.contains(target)) continue;
                             if (!mc.level.getBlockState(target).canBeReplaced()) continue;
                             if (!mc.level.getBlockState(support).isFaceSturdy(mc.level, support, Direction.UP)) continue;
+                            if (p.getBoundingBox().inflate(0.05).intersects(new net.minecraft.world.phys.AABB(target))) continue; // I'm standing in it
                             Vec3 face = Vec3.atCenterOf(support).add(0, 0.5, 0);
                             if (eye.distanceTo(face) > REACH) continue;
                             BlockHitResult view = mc.level.clip(new ClipContext(eye, face, ClipContext.Block.OUTLINE, ClipContext.Fluid.NONE, p));
@@ -678,10 +684,13 @@ final class Hands {
                 }
                 return "no free spot next to me";
             }
-            if (ticks - placedTick < 6) return null;
-            if (mc.level.getBlockState(placedAt).isAir()) {
+            if (ticks - placedTick < 10) return null;
+            if (mc.level.getBlockState(placedAt).canBeReplaced()) { // the server said no: try somewhere else
+                refused.add(placedAt);
                 placedAt = null;
-                return "it didn't stay placed";
+                if (refused.size() >= 4) return "couldn't place it anywhere next to me";
+                phase = 1;
+                return null;
             }
             return "placed at " + at(placedAt);
         }
@@ -824,6 +833,24 @@ final class Hands {
                 left -= before - after;
             }
             return null;
+        }
+    }
+
+    /** Tidies the open container, or the main inventory when nothing is open: merged stacks, grouped by kind. */
+    private final class SortTask extends Task {
+        private final boolean potionsFirst;
+
+        SortTask(boolean potionsFirst) {
+            super("sort");
+            this.potionsFirst = potionsFirst;
+        }
+
+        @Override
+        String tick(Minecraft mc, LocalPlayer p) {
+            if (ticks < 4) return null;
+            boolean own = p.containerMenu == p.inventoryMenu;
+            int moves = Afk.CONTAINERS.sort(mc, p.containerMenu, own, potionsFirst);
+            return moves == 0 ? "already tidy" : "sorted " + (own ? "the inventory" : "the open container") + " in " + moves + " clicks";
         }
     }
 

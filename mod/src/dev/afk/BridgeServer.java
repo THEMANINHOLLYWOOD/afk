@@ -34,7 +34,7 @@ import net.minecraft.client.player.LocalPlayer;
  *   POST /say      {text}         a line from Herobrine in your chat (only you see it)
  *   POST /servercommand {command} run a server command you asked for in chat (only right after you asked)
  *   POST /craft    {item,count}   craft in the open crafting screen (for the human)
- *   POST /act      {actions:[{do,...}]}  hands: craft, use, place, eat, sleep, stash, take, close, equip
+ *   POST /act      {actions:[{do,...}]}  hands: craft, use, place, eat, sleep, stash, take, close, equip, sort
  *   POST /respawn
  *   POST /screenshot             save a screenshot (used to check the visuals)
  */
@@ -284,7 +284,7 @@ final class BridgeServer {
             }
         });
         try {
-            return future.get(5, TimeUnit.SECONDS);
+            return future.get(20, TimeUnit.SECONDS); // generous: the game can stall for seconds when it loads chunks
         } catch (ExecutionException e) {
             if (e.getCause() instanceof RuntimeException runtime) throw runtime;
             throw e;
