@@ -1,0 +1,118 @@
+{
+  "minecraft": "26.3",
+  "fabric-loader": "0.20.1",
+  "files": [
+    {
+      "path": "mods/baritone-api-fabric-1.20.0.jar",
+      "url": "https://github.com/cabaletta/baritone/releases/download/v1.20.0/baritone-api-fabric-1.20.0.jar",
+      "sha1": "8c0de04b371a466f7c6808119ea18f5554653fb6",
+      "sha512": "d915610de65fff3e5aff720ca769ad6a2ef9fe96e1c0f374a39032909edc64d0019fa60bba1ac04b36f238e992c5551212c24272e93eda2cd416dbc33dfe9da3",
+      "size": 4821430
+    },
+    {
+      "path": "mods/entity_model_features-3.3.12-26.3-fabric.jar",
+      "url": "https://cdn.modrinth.com/data/4I1XuqiY/versions/vF6qLXsA/entity_model_features-3.3.12-26.3-fabric.jar",
+      "sha1": "2d076285c7e0671165fc86a827e62ce88ddcd201",
+      "sha512": "4572fc065e757264947aff35a96d17d5e45d4b43e8e385b9a207f5380a8f43da5dbf8e10f30a7bc7cc4c0c8f7999717b4dd22d325667bdf8a0de6e839ad81efc",
+      "size": 665386
+    },
+    {
+      "path": "mods/entity_texture_features-7.2.7-26.3-fabric.jar",
+      "url": "https://cdn.modrinth.com/data/BVzZfTc1/versions/svwZ2o4d/entity_texture_features-7.2.7-26.3-fabric.jar",
+      "sha1": "29f48f42d72007ce13b4678fac5b2ef5986879e4",
+      "sha512": "69193c58d4d05e08fea9afa34cc47563e9b9e95aa2da276441085ade44ed36f8123b9cc1a2938f9ecac9aea6fd9ceb51120dd20f7284337a3bb592bc3b904336",
+      "size": 798322
+    },
+    {
+      "path": "mods/fabric-api-0.166.2+26.3.jar",
+      "url": "https://cdn.modrinth.com/data/P7dR8mSH/versions/Zns5SSRA/fabric-api-0.166.2%2B26.3.jar",
+      "sha1": "65636253571429971f25f5619692e6c1a6362028",
+      "sha512": "fb686a9fa923248328107a12498229d6951e316257f18b7d0e4cbd6885ba447ed50a44076a8a5ba47cfe2043b329db3587ab000aeab1face26b2587a5d4ba6b5",
+      "size": 1797523
+    },
+    {
+      "path": "mods/iris-fabric-1.11.7+mc26.3.jar",
+      "url": "https://cdn.modrinth.com/data/YL57xq9U/versions/vTN4NRGW/iris-fabric-1.11.7%2Bmc26.3.jar",
+      "sha1": "fa03640ba1e4ef2f7ae3619c6373a06e46d0ba2c",
+      "sha512": "d8d3312f77fc52a48e4a6cd836fda33669bdebcb4de0b8c0d30adc808b287330a533e0baef355cc1ce6336a26851d9775369a802a4666b7b7a6266af20088f42",
+      "size": 2850938
+    },
+    {
+      "path": "mods/modmenu-21.0.1.jar",
+      "url": "https://cdn.modrinth.com/data/mOgUt4GM/versions/xckkBHD5/modmenu-21.0.1.jar",
+      "sha1": "884ab621735264187ccbfc87017cf55bb54d47ee",
+      "sha512": "d00d52d5342728da13a6237f76c50fc5fd1c62d8112ae4e07726bbc64d2019a76130d6b2968765df81c6499225588eacee6681eebc13c0ada3cad91fc8ab2984",
+      "size": 862761
+    },
+    {
+      "path": "mods/sodium-fabric-0.9.2+mc26.3.jar",
+      "url": "https://cdn.modrinth.com/data/AANobbMI/versions/bAZQdGpg/sodium-fabric-0.9.2%2Bmc26.3.jar",
+      "sha1": "9acfe851e36f4fb27d7c5baa224e8bd4e0334283",
+      "sha512": "f3f260f204b8ce5e8777c2c73f537956755ec61f3817b0b78b5e5568e8aa40f14891f146475075109747665c7c88a45ca0ca9a8df3c68d79c58ecdaa8d8c4b93",
+      "size": 1908068
+    },
+    {
+      "path": "shaderpacks/BSL_v10.1.8.zip",
+      "url": "https://cdn.modrinth.com/data/Q1vvjJYV/versions/Y68yiql9/BSL_v10.1.8.zip",
+      "sha1": "e89818c8827d0131c102fb480c3c3446624db0df",
+      "sha512": "94a3c25d6820868db624e11347873e6b572e7cd571967d9ac6f4690ca5d37ca302a7645d85eec800e0654541e3825fba14d37b5a25d3996aaf038178552be26f",
+      "size": 1134153
+    },
+    {
+      "path": "shaderpacks/ComplementaryReimagined_r5.9.3.zip",
+      "url": "https://cdn.modrinth.com/data/HVnmMxH1/versions/Bqen1mJX/ComplementaryReimagined_r5.9.3.zip",
+      "sha1": "838139b54cddb56b2e83cd260d8efd960ac536d6",
+      "sha512": "45304b1d7862afdb2177b7e6226fc9c6737911d17a4ad46cc9c519ca4deb935f05072cd337cd8b19a15bb8062b57b54eceec7bdee4cd572d94858e2946d37d85",
+      "size": 553397
+    },
+    {
+      "path": "shaderpacks/ComplementaryUnbound_r5.9.3.zip",
+      "url": "https://cdn.modrinth.com/data/R6NEzAwj/versions/B1kyfoUZ/ComplementaryUnbound_r5.9.3.zip",
+      "sha1": "2ee08300e1d6f039e63eae8484dddf57b3aaaf67",
+      "sha512": "a085d1d8cda67cd17a2b414eeba48bbd809da069f269bab46246235ec8fe714a275013c70d0504527b0987d810deddddba4564332414ab3b3bd7435932ff808c",
+      "size": 553400
+    },
+    {
+      "path": "shaderpacks/photon_v1.4.zip",
+      "url": "https://cdn.modrinth.com/data/lLqFfGNs/versions/BnGklH5y/photon_v1.4.zip",
+      "sha1": "96c7730f5891a42e39bbf1f0f5a98fa99628a7fe",
+      "sha512": "2dec87084dccf91a72a06235ecbfb3627f066699b5f70583f06077cba61433aedbfa6af28eb68bf1cdc726149cc3d9a587517cfab59e6a24e9d6a40b6874d655",
+      "size": 3857333
+    },
+    {
+      "path": "resourcepacks/Default-Dark-Mode.zip",
+      "url": "https://cdn.modrinth.com/data/6SLU7tS5/versions/1x3lSLAL/Default-Dark-Mode-26.3-2026.9.0.zip",
+      "sha1": "fcc1fc604099baa78794ebfac2fd4b6b7a45aee4",
+      "sha512": "85ce27a77eda65a84b17a0495def5f6b72c405f7cbe82d17939a98134319a5baa1ce7f18179c9c67fd444d5798ce4f3822d982fed590399a2aefd4ebcc73751f",
+      "size": 761869
+    },
+    {
+      "path": "resourcepacks/Faithful-32x.zip",
+      "url": "https://cdn.modrinth.com/data/w0TnApzs/versions/lDYpMiqk/Faithful%2032x%20-%2026.3.zip",
+      "sha1": "0f20dfdff314da4da3bdf365f66718e8c344075b",
+      "sha512": "e90ec63af7f239dbb99aa20c98b23d830e76898f65d3e31b7f0b53bb36db12dcd8c38d6930c743237c9c3db7bf708423fa1d1b2fd497dd6c281dbe216b779db9",
+      "size": 13116019
+    },
+    {
+      "path": "resourcepacks/Fast-Better-Grass.zip",
+      "url": "https://cdn.modrinth.com/data/dspVZXKP/versions/Alviiov6/Fast%20Better%20Grass.zip",
+      "sha1": "ca670657742ed2f479877da9440547372e5f92b5",
+      "sha512": "f4a63fbacbcae3831749b901092e287ea328ac11ba9dbec8ab6def67b0ff958b218fd9cc27ae7da3afd124a5b14d9ad559cf01a8ac9dd05e5bcd7fc9abe7e286",
+      "size": 10907
+    },
+    {
+      "path": "resourcepacks/FreshAnimations.zip",
+      "url": "https://cdn.modrinth.com/data/50dA9Sha/versions/xfE3qfr5/FreshAnimations_v1.11.2_26.1%2B.zip",
+      "sha1": "8176a3c13963aac2adc1f12214ceabfc45127ab2",
+      "sha512": "c0a529479b9e43465d8b5c5f939711fded92d92fd26053b75fcbe0560046e23655f2d429d108b286cbfceb0470960b5a519ac2311ab108899b7529b76a9e9e30",
+      "size": 778725
+    },
+    {
+      "path": "resourcepacks/LowOnFire.zip",
+      "url": "https://cdn.modrinth.com/data/RRxvWKNC/versions/yQdcUfnr/LowOnFire%20v26.2%C2%A78.zip",
+      "sha1": "96932a034fff4cd0cad08ba12db730450c4772da",
+      "sha512": "713a20a8171c8249c30d9eb72342162754c627c7a86dc0971cb555faf43c322c181fd5546e0c770fc9ae922161ee846a7af951267c1d9a8a75af466a17e19d5e",
+      "size": 42760
+    }
+  ]
+}

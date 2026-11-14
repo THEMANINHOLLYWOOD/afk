@@ -1,0 +1,3 @@
+gamma:1.0
+darknessEffectScale:0.0
+resourcePacks:["vanilla","file/Faithful-32x.zip","file/Fast-Better-Grass.zip","file/LowOnFire.zip","file/FreshAnimations.zip","file/Default-Dark-Mode.zip"]

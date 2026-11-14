@@ -1,0 +1,74 @@
+# AFK
+
+**Tap Tab and Herobrine takes over.** AFK is a Minecraft modpack (Java 26.3, Fabric) where an AI agent, signed in with *your own* Claude or ChatGPT account, takes control of your character and plays for you, filmed by a cinematic camera. Tap Tab again and you're back.
+
+> Early pre-release (0.1.0). Built and tested on macOS with Minecraft 26.3. Expect rough edges.
+
+## What it does
+
+- **Tab takeover.** Tap Tab: Herobrine has your body. Tap again: it switches off and Baritone pauses mid-task, so it resumes where it left off next time. Holding Tab still shows the player list.
+- **Plays legitimately.** Herobrine only knows what a player in your body could see or hear: ores and mobs in line of sight, your inventory, health and coordinates, and the tab list. Baritone is locked to legit mining (it only digs ores it has seen and otherwise strip-mines), and commands that search hidden blocks are blocked. It explores, tunnels and discovers the world like a person would.
+- **Cinematic camera.** While Herobrine plays, the view becomes a film: over-the-shoulder, side tracking, low hero angles, orbits, wide shots, crane and top-down shots, fly-bys from a spot ahead on its route, and close-ups of the block being mined. Springs carry the camera and its aim, the lens pushes in slowly, and letterbox bars frame it. The camera stays out of solid blocks and keeps a clear line to you, so it never works as x-ray.
+- **Cinematic moments for you.** Press **B** while exploring for a GTA-style cinematic camera you can still walk around in. Firsts get a short shot and a title card on their own: a new biome, a creature you've never seen, your first diamond, a big cave, the Nether, the End.
+- **See what it's thinking.** A small panel shows its live commentary, its plan, what it remembers and what it can see. Markers in the world show its route, destination, home, the ores and mobs in its sight, and the block it's mining.
+- **Talk to it in plain words.** In chat, start with `hb` (`hb mine some iron`, `hb what did you do?`). While Herobrine has control, everything you type goes to it; start with `!` to talk to the server. It answers in your chat, takes or hands back control when you ask, and runs a server command only when you explicitly asked for one. Voice works through macOS Dictation into the chat box.
+- **`/do <task>`.** Give it a task and it takes over: `/do get me 20 logs`, `/do farm the wheat`. `/do stop` takes you back.
+- **It remembers what you were doing.** While you play, AFK keeps a short local diary: blocks broken and placed, containers opened, where you travelled, your chat and commands, and what you gained or used. When you hand over, Herobrine reads it and continues your work.
+- **Crafting and chests by typing.** Every container screen gets an "Ask Herobrine" box. At a crafting table: `3 pickaxes`, `16 torches` (it uses the recipe book, just like clicking). In a chest: `sort`, `sort potions`.
+- **Farming.** `hb farm` (or `/do farm`) harvests ripe crops and replants them.
+- **It learns.** Herobrine keeps a playbook of *lessons* (written after every death or failure) and *skills* (ways of doing things it worked out or you taught it), and reads it at the start of every session. It doesn't retrain a model; it gets better by following its own growing notes.
+- **Keeps 24 FPS or better.** A performance governor steps render distance, entity distance, clouds and, if needed, shaders down when frames drop, and back up when there's headroom. It never goes past your own settings and puts them back when you leave.
+- **Looks good by default.** Complementary Unbound shaders with Iris and Sodium, Faithful 32x, Fresh Animations, Fast Better Grass, Low On Fire and Default Dark Mode, plus max brightness and no Darkness-effect pulsing.
+
+## Install
+
+You need:
+
+1. **Minecraft Java 26.3** and a launcher that imports Modrinth packs (Modrinth App or Prism Launcher), or the official launcher with Fabric.
+2. **Node.js 22 or newer** (`brew install node`).
+3. **One sign-in for Herobrine**, either:
+   - **Claude**: [Claude Code](https://claude.com/claude-code), signed in (`claude auth login`), or
+   - **Codex**: the Codex CLI (`npm install -g @openai/codex`), signed in (`codex login`). Codex support is new and less tested.
+
+Then download `AFK-0.1.0.mrpack` from [Releases](../../releases) and import it in your launcher. In the game, `/afk login` opens the sign-in for you, and `/afk provider codex` switches to Codex.
+
+Herobrine's brain (`afk/brain/agent.mjs` in the game folder) starts automatically when you join a world. Settings are in `config/afk.json`.
+
+## Controls
+
+| | |
+|---|---|
+| Tap **Tab** | Herobrine takes over / gives you back control |
+| Hold **Tab** | Player list (as usual) |
+| **B** | Cinematic camera while you play |
+| `hb <anything>` in chat | Talk to Herobrine |
+| `/do <task>`, `/do stop` | Give a task / take control back |
+| `/afk status`, `/afk login`, `/afk perf on\|off` | Status, sign-in, performance governor |
+
+## Privacy
+
+Everything runs on your computer. The mod talks to Herobrine's brain over a local-only port (`127.0.0.1:25599`) that rejects requests from web pages. Your activity diary, discoveries and Herobrine's playbook are files in your game folder (`afk/`). The only thing that leaves your machine is what Herobrine sends to your own Claude or Codex account to decide what to do.
+
+## Honest limits
+
+- Herobrine can't fight, eat, sleep or open chests by itself yet; it tells you when it needs you.
+- Baritone's route planner knows the layout of terrain the game has loaded (that's how pathfinding works). Ore finding is legit, but routes aren't limited to what's been seen.
+- On a shared server or Realm, Herobrine plays as you, so follow the server's rules about automation.
+- A custom AFK shader pack is planned; research notes are in [docs/shader-research.md](docs/shader-research.md).
+
+## Build from source
+
+```bash
+JDK_HOME=/path/to/jdk-25 mod/build.sh          # builds mod/build/afk-<version>.jar against your local 26.3 install
+python3 pack/build-pack.py mod/build/afk-0.1.0.jar <owner>/<repo>   # builds dist/AFK-<version>.mrpack
+```
+
+The mod compiles straight against the game jar (26.x ships readable names), so no Gradle is needed. It expects Fabric API, Baritone and Iris jars in your `mods` folder.
+
+## Credits
+
+AFK links to these projects; nothing of theirs is redistributed in this repository. Thank you to their authors.
+[Fabric](https://fabricmc.net) · [Baritone](https://github.com/cabaletta/baritone) (LGPL-3.0) · [Sodium](https://modrinth.com/mod/sodium) · [Iris](https://modrinth.com/mod/iris) · [Entity Model Features](https://modrinth.com/mod/entity-model-features) · [Entity Texture Features](https://modrinth.com/mod/entitytexturefeatures) · [Mod Menu](https://modrinth.com/mod/modmenu) · [Complementary Shaders](https://modrinth.com/shader/complementary-unbound) · [BSL](https://modrinth.com/shader/bsl-shaders) · [Photon](https://modrinth.com/shader/photon-shader) · [Faithful](https://modrinth.com/resourcepack/faithful-32x) · [Fresh Animations](https://modrinth.com/resourcepack/fresh-animations) · Fast Better Grass · Low On Fire · Default Dark Mode.
+The cinematic camera's shot language follows the film camera in [Icarus](https://justkeepflying.com).
+
+AFK's own code is MIT licensed.

@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "id": "afk",
+  "version": "0.1.0",
+  "name": "AFK",
+  "description": "Tap Tab and Herobrine, a Claude or Codex agent signed in with your own account, takes over your body and plays legitimately, filmed by a cinematic camera. Tap again to take it back.",
+  "authors": ["AFK contributors"],
+  "license": "MIT",
+  "icon": "assets/afk/icon.png",
+  "environment": "client",
+  "entrypoints": {
+    "client": ["dev.afk.Afk"]
+  },
+  "mixins": ["afk.mixins.json"],
+  "depends": {
+    "fabricloader": ">=0.19.5",
+    "minecraft": "~26.3",
+    "java": ">=25",
+    "fabric-api": "*",
+    "baritone": "*"
+  },
+  "suggests": {
+    "iris": "*",
+    "sodium": "*"
+  }
+}

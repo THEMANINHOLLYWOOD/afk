@@ -1,0 +1,6 @@
+mod/build/
+dist/
+brain/memory.json
+brain/*.log
+brain/.session/
+.DS_Store
