@@ -76,6 +76,13 @@ final class DevHooks {
                 p.setYRot(body.get("yaw").getAsFloat());
                 p.setXRot(body.get("pitch").getAsFloat());
             }
+            case "key" -> { // press or release a real key binding, exactly as a keyboard event would
+                int code = "b".equals(body.get("key").getAsString()) ? InputConstants.KEY_B : InputConstants.KEY_TAB;
+                InputConstants.Key key = InputConstants.Type.KEYBOARD.getOrCreate(code);
+                boolean down = body.get("down").getAsBoolean();
+                net.minecraft.client.KeyMapping.set(key, down);
+                if (down) net.minecraft.client.KeyMapping.click(key);
+            }
             case "inventory" -> mc.gui.setScreen(new InventoryScreen(p));
             case "close" -> p.closeContainer();
             case "box" -> {
