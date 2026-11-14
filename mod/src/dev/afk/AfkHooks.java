@@ -8,11 +8,11 @@ public final class AfkHooks {
     private AfkHooks() {
     }
 
-    /** Pose for this frame as {x, y, z, yRot, xRot}, or null to leave the vanilla camera alone. */
+    /** Pose for this frame as {x, y, z, yRot, xRot, detached(1/0)}, or null to leave the vanilla camera alone. */
     public static double[] directCamera(Camera camera, float partial) {
         try {
             CinematicCamera.Pose p = Afk.CAMERA.direct(camera, partial);
-            return p == null ? null : new double[] {p.x(), p.y(), p.z(), p.yRot(), p.xRot()};
+            return p == null ? null : new double[] {p.x(), p.y(), p.z(), p.yRot(), p.xRot(), p.detached() ? 1 : 0};
         } catch (Throwable t) {
             Afk.LOG.error("Cinematic camera failed; leaving the normal camera", t);
             return null;
@@ -21,6 +21,11 @@ public final class AfkHooks {
 
     public static Float fovOverride() {
         return Afk.CAMERA.fovOverride();
+    }
+
+    /** The outline around the block under the crosshair has no place in a film shot. */
+    public static boolean hideBlockOutline() {
+        return Afk.CAMERA.hidesBlockOutline();
     }
 
     public static void recordPose(Camera camera) {

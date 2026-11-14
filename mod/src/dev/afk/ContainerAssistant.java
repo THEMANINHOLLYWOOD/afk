@@ -53,14 +53,6 @@ final class ContainerAssistant {
     private EditBox box;
     private Screen boxScreen;
 
-    // A craft in progress: place the recipe, wait for the result, shift-click it out, repeat.
-    private RecipeDisplayEntry crafting;
-    private String craftingName;
-    private int craftWanted;
-    private int craftMade;
-    private int craftWait;
-    private boolean craftPlaced;
-
     void register() {
         ScreenEvents.AFTER_INIT.register((mc, screen, width, height) -> {
             if (!(screen instanceof AbstractContainerScreen<?>) || mc.player == null) return;
@@ -95,37 +87,11 @@ final class ContainerAssistant {
             box = null;
             boxScreen = null;
         }
-        if (crafting == null) return;
-        LocalPlayer p = mc.player;
-        if (p == null || !(mc.gui.screen() instanceof AbstractContainerScreen<?> screen)) {
-            finishCraft("stopped: the screen closed");
-            return;
-        }
-        AbstractContainerMenu menu = screen.getMenu();
-        if (!craftPlaced) {
-            mc.gameMode.handlePlaceRecipe(menu.containerId, crafting.id(), false);
-            craftPlaced = true;
-            craftWait = 0;
-            return;
-        }
-        ItemStack result = menu.getSlot(0).getItem();
-        if (result.isEmpty()) {
-            if (++craftWait > 30) finishCraft(craftMade > 0 ? "ran out of materials" : "couldn't craft it (missing materials, or it needs a crafting table)");
-            return;
-        }
-        int made = result.getCount();
-        mc.gameMode.handleContainerInput(menu.containerId, 0, 0, ContainerInput.QUICK_MOVE, p);
-        craftMade += made;
-        craftPlaced = false;
-        if (craftMade >= craftWanted) finishCraft("done");
     }
 
-    private void finishCraft(String how) {
-        if (crafting != null) {
-            Afk.CHAT.showHerobrine("Crafted " + craftMade + " " + craftingName + (how.equals("done") ? "." : " — " + how + "."));
-            Afk.EVENTS.add("craft", "crafted " + craftMade + " " + craftingName + " (" + how + ")");
-        }
-        crafting = null;
+    /** Same as typing into the box and pressing Enter. */
+    void handleText(Minecraft mc, Screen screen, String text) {
+        handle(mc, screen, text);
     }
 
     private void handle(Minecraft mc, Screen screen, String text) {
@@ -157,34 +123,11 @@ final class ContainerAssistant {
 
     // ------------------------------------------------------------------ crafting
 
-    private record Option(RecipeDisplayEntry entry, String id, boolean craftable) {}
-
-    private List<Option> options(Minecraft mc) {
-        List<Option> out = new ArrayList<>();
-        LocalPlayer p = mc.player;
-        if (p == null || mc.level == null) return out;
-        StackedItemContents contents = new StackedItemContents();
-        p.getInventory().fillStackedContents(contents);
-        ContextMap ctx = SlotDisplayContext.fromLevel(mc.level);
-        for (RecipeCollection collection : p.getRecipeBook().getCollections()) {
-            for (RecipeDisplayEntry entry : collection.getRecipes()) {
-                List<ItemStack> results = entry.resultItems(ctx);
-                if (results.isEmpty() || results.get(0).isEmpty()) continue;
-                out.add(new Option(entry, StateSampler.itemId(results.get(0)), entry.canCraft(contents)));
-            }
-        }
-        return out;
-    }
-
     private List<String> craftableNames(Minecraft mc, int max) {
-        List<String> names = new ArrayList<>();
-        for (Option o : options(mc)) {
-            if (o.craftable && !names.contains(o.id) && names.size() < max) names.add(o.id);
-        }
-        return names;
+        return Hands.craftableNow(mc, max);
     }
 
-    /** Local fuzzy match ("3 picks" -> best pickaxe you can make). Returns null if nothing fits. */
+    /** Local fuzzy match ("3 picks" -> the best pickaxe you can make). Returns null if nothing fits. */
     private String craftByWords(Minecraft mc, String words, int count) {
         List<String> tokens = new ArrayList<>();
         for (String raw : words.toLowerCase(Locale.ROOT).replaceAll("[^a-z_ ]", " ").split("\\s+")) {
@@ -193,53 +136,39 @@ final class ContainerAssistant {
             tokens.add(tok);
         }
         if (tokens.isEmpty()) return null;
-        Option best = null;
+        Hands.Recipe best = null;
         int bestScore = Integer.MIN_VALUE;
-        for (Option o : options(mc)) {
-            List<String> parts = List.of(o.id.split("_"));
-            boolean all = tokens.stream().allMatch(tok -> o.id.equals(tok) || parts.contains(tok) || o.id.contains(tok));
+        for (Hands.Recipe o : Hands.recipes(mc)) {
+            List<String> parts = List.of(o.id().split("_"));
+            boolean all = tokens.stream().allMatch(tok -> o.id().equals(tok) || parts.contains(tok) || o.id().contains(tok));
             if (!all) continue;
-            int score = (o.craftable ? 1000 : 0) - (o.id.length() * 2);
-            for (int i = 0; i < TIERS.size(); i++) if (o.id.startsWith(TIERS.get(i) + "_")) score += (TIERS.size() - i) * 10;
-            if (o.id.equals(String.join("_", tokens))) score += 500;
+            int score = (o.craftable() ? 1000 : 0) - (o.id().length() * 2);
+            for (int i = 0; i < TIERS.size(); i++) if (o.id().startsWith(TIERS.get(i) + "_")) score += (TIERS.size() - i) * 10;
+            if (o.id().equals(String.join("_", tokens))) score += 500;
             if (score > bestScore) {
                 bestScore = score;
                 best = o;
             }
         }
         if (best == null) return null;
-        if (!best.craftable) {
-            Afk.CHAT.showHerobrine("I can't make " + best.id + " with what you're carrying.");
+        if (!best.craftable()) {
+            Afk.CHAT.showHerobrine("I can't make " + best.id() + " with what you're carrying.");
             return "missing";
         }
-        startCraft(best, count);
+        Afk.CHAT.showHerobrine("Crafting " + count + " " + best.id() + "...");
+        Afk.HANDS.craftForHuman(best.id(), count);
         return "started";
     }
 
-    /** For the brain: craft an exact item id. Client thread. */
+    /** For the brain, when the human asked in a crafting screen: craft an exact item id. Client thread. */
     String craftById(String item, int count) {
         Minecraft mc = Minecraft.getInstance();
         if (!(mc.gui.screen() instanceof CraftingScreen) && !(mc.gui.screen() instanceof InventoryScreen)) {
             throw new IllegalStateException("open a crafting table or your inventory first");
         }
         String id = item.replace("minecraft:", "");
-        for (Option o : options(mc)) {
-            if (o.id.equals(id)) {
-                if (!o.craftable) return "missing materials for " + id;
-                startCraft(o, count);
-                return "crafting " + count + " " + id;
-            }
-        }
-        return "no known recipe for " + id;
-    }
-
-    private void startCraft(Option o, int count) {
-        crafting = o.entry;
-        craftingName = o.id;
-        craftWanted = Math.max(1, Math.min(640, count));
-        craftMade = 0;
-        craftPlaced = false;
-        Afk.CHAT.showHerobrine("Crafting " + craftWanted + " " + o.id + "...");
+        Afk.HANDS.craftForHuman(id, count);
+        return "crafting " + count + " " + id;
     }
 
     // ------------------------------------------------------------------ sorting

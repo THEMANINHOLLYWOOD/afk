@@ -33,7 +33,8 @@ import net.minecraft.client.player.LocalPlayer;
  *   POST /mode     {agent,why}    take or hand back control
  *   POST /say      {text}         a line from Herobrine in your chat (only you see it)
  *   POST /servercommand {command} run a server command you asked for in chat (only right after you asked)
- *   POST /craft    {item,count}   craft in the open crafting screen
+ *   POST /craft    {item,count}   craft in the open crafting screen (for the human)
+ *   POST /act      {actions:[{do,...}]}  hands: craft, use, place, eat, sleep, stash, take, close, equip
  *   POST /respawn
  *   POST /screenshot             save a screenshot (used to check the visuals)
  */
@@ -69,8 +70,10 @@ final class BridgeServer {
             created.createContext("/say", guard(BridgeServer::say));
             created.createContext("/servercommand", guard(BridgeServer::serverCommand));
             created.createContext("/craft", guard(BridgeServer::craft));
+            created.createContext("/act", guard(BridgeServer::act));
             created.createContext("/respawn", guard(BridgeServer::respawn));
             created.createContext("/screenshot", guard(BridgeServer::screenshot));
+            if (Boolean.getBoolean("afk.dev")) created.createContext("/dev", guard(DevHooks::handle));
             created.start();
             server = created;
         } catch (IOException e) {
@@ -230,6 +233,18 @@ final class BridgeServer {
         String result = onClientThread(() -> Afk.CONTAINERS.craftById(item, count));
         JsonObject out = ok();
         out.addProperty("result", result);
+        return out;
+    }
+
+    private static JsonObject act(HttpExchange exchange, JsonObject body) throws Exception {
+        requirePost(exchange);
+        if (!body.has("actions") || !body.get("actions").isJsonArray()) throw new IllegalArgumentException("missing \"actions\" array");
+        String queued = onClientThread(() -> {
+            if (!Afk.MODE.isAgent()) throw new IllegalStateException("the human has control right now");
+            return Afk.HANDS.enqueue(body.getAsJsonArray("actions"));
+        });
+        JsonObject out = ok();
+        out.addProperty("result", queued);
         return out;
     }
 

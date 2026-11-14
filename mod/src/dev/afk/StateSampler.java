@@ -42,10 +42,12 @@ final class StateSampler {
 
     record SeenOre(String id, BlockPos pos, double distance) {}
     record SeenMob(Entity entity, String id, double distance, boolean hostile) {}
+    record Usable(String id, BlockPos pos, double distance) {}
 
     private volatile String json = "{\"inWorld\":false}";
     private volatile List<SeenOre> seenOres = List.of();
     private volatile List<SeenMob> seenMobs = List.of();
+    private volatile List<Usable> usable = List.of();
     private int tickCounter;
     private boolean wasInWorld;
     private boolean wasDead;
@@ -89,8 +91,34 @@ final class StateSampler {
         return allowHit != null && hit.getBlockPos().equals(allowHit);
     }
 
+    private static final double[][] AIM_OFFSETS = {
+            {0, 0, 0}, {0, 0.42, 0}, {0, -0.3, 0}, {0.3, 0.3, 0}, {-0.3, 0.3, 0}, {0, 0.3, 0.3}, {0, 0.3, -0.3},
+            {0.35, 0, 0.35}, {-0.35, 0, -0.35}, {0.35, 0, -0.35}, {-0.35, 0, 0.35}};
+
+    /** Where on a block the crosshair can land from here (grass and other blocks in the way count), or null. */
+    static BlockHitResult aimAt(ClientLevel level, LocalPlayer p, BlockPos pos, double reach) {
+        Vec3 eye = p.getEyePosition();
+        Vec3 center = Vec3.atCenterOf(pos);
+        for (double[] o : AIM_OFFSETS) {
+            Vec3 target = center.add(o[0], o[1], o[2]);
+            Vec3 dir = target.subtract(eye);
+            double len = dir.length();
+            if (len > reach + 0.8 || len < 1e-3) continue;
+            Vec3 end = eye.add(dir.scale((len + 0.6) / len)); // a little past, so thin blocks are reached too
+            BlockHitResult hit = level.clip(new ClipContext(eye, end, ClipContext.Block.OUTLINE, ClipContext.Fluid.NONE, p));
+            if (hit.getType() == HitResult.Type.BLOCK && hit.getBlockPos().equals(pos) && hit.getLocation().distanceTo(eye) <= reach) return hit;
+        }
+        return null;
+    }
+
     static boolean isOre(String id) {
         return id.endsWith("_ore") || id.equals("ancient_debris");
+    }
+
+    /** Blocks Herobrine can right-click to do something useful. */
+    static boolean isUsable(String id) {
+        return id.equals("crafting_table") || id.equals("furnace") || id.equals("blast_furnace") || id.equals("smoker")
+                || id.equals("chest") || id.equals("barrel") || id.endsWith("_bed") || id.endsWith("shulker_box");
     }
 
     private void scan(Minecraft mc) {
@@ -99,10 +127,12 @@ final class StateSampler {
         if (p == null || level == null) {
             seenOres = List.of();
             seenMobs = List.of();
+            usable = List.of();
             return;
         }
         // Ores with an exposed face that the eye can actually reach.
         List<SeenOre> ores = new ArrayList<>();
+        List<Usable> useful = new ArrayList<>();
         BlockPos center = BlockPos.containing(p.getEyePosition());
         BlockPos.MutableBlockPos m = new BlockPos.MutableBlockPos();
         for (int dx = -ORE_SCAN_RADIUS; dx <= ORE_SCAN_RADIUS; dx++) {
@@ -112,6 +142,11 @@ final class StateSampler {
                     BlockState state = level.getBlockState(m);
                     if (state.isAir()) continue;
                     String id = shortId(BuiltInRegistries.BLOCK.getKey(state.getBlock()));
+                    if (isUsable(id)) {
+                        BlockPos at = m.immutable();
+                        if (canSee(level, p, Vec3.atCenterOf(at), at) || aimAt(level, p, at, 12) != null) useful.add(new Usable(id, at, Math.sqrt(at.distToCenterSqr(p.getEyePosition()))));
+                        continue;
+                    }
                     if (!isOre(id)) continue;
                     BlockPos pos = m.immutable();
                     if (!exposed(level, pos)) continue;
@@ -122,6 +157,8 @@ final class StateSampler {
         }
         ores.sort(Comparator.comparingDouble(SeenOre::distance));
         seenOres = List.copyOf(ores.subList(0, Math.min(12, ores.size())));
+        useful.sort(Comparator.comparingDouble(Usable::distance));
+        usable = List.copyOf(useful.subList(0, Math.min(8, useful.size())));
 
         List<SeenMob> mobs = new ArrayList<>();
         for (Entity e : level.entitiesForRendering()) {
@@ -220,6 +257,29 @@ final class StateSampler {
             ores.add(ore.id + " " + Math.round(ore.distance) + "m @ " + ore.pos.getX() + " " + ore.pos.getY() + " " + ore.pos.getZ());
         }
         o.add("oresInSight", ores);
+        if (!usable.isEmpty()) {
+            JsonArray useful = new JsonArray();
+            for (Usable u : usable) useful.add(u.id + " " + Math.round(u.distance) + "m @ " + u.pos.getX() + " " + u.pos.getY() + " " + u.pos.getZ());
+            o.add("usableInSight", useful);
+        }
+        if (p.containerMenu != p.inventoryMenu) {
+            JsonObject open = new JsonObject();
+            if (mc.gui.screen() != null) open.addProperty("title", mc.gui.screen().getTitle().getString());
+            Map<String, Integer> inside = new TreeMap<>();
+            int free = 0;
+            for (net.minecraft.world.inventory.Slot slot : p.containerMenu.slots) {
+                if (slot.container == p.getInventory()) continue;
+                if (slot.hasItem()) inside.merge(itemId(slot.getItem()), slot.getItem().getCount(), Integer::sum);
+                else free++;
+            }
+            JsonObject contents = new JsonObject();
+            inside.forEach(contents::addProperty);
+            open.add("contents", contents);
+            open.addProperty("freeSlots", free);
+            o.add("openContainer", open);
+        }
+        String busy = Afk.HANDS.busyLabel();
+        if (busy != null) o.addProperty("handsBusy", busy);
         JsonArray hostiles = new JsonArray();
         JsonArray creatures = new JsonArray();
         JsonArray players = new JsonArray();

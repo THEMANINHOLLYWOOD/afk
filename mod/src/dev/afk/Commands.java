@@ -13,7 +13,7 @@ import net.minecraft.client.Minecraft;
  *   /do <task>      give Herobrine a task in plain words; he takes control
  *   /do             show the current task          /do stop   take control back
  *   /afk            help    /afk status    /afk login [claude|codex]    /afk provider <claude|codex>
- *   /afk perf <on|off>     /afk cinematic     /afk brain restart
+ *   /afk perf <on|off>     /afk moments <on|off>     /afk cinematic     /afk brain restart
  */
 final class Commands {
     private Commands() {
@@ -52,7 +52,7 @@ final class Commands {
                     boolean awake = System.currentTimeMillis() - BridgeServer.lastBrainContactMs() < 15_000;
                     Afk.CHAT.showHerobrine((Afk.MODE.isAgent() ? "I have control. " : "You have control. ")
                             + "Brain: " + (awake ? "awake" : "not connected") + " · sign-in: " + cfg.get("provider").getAsString()
-                            + " · performance governor: " + (Afk.PERFORMANCE.enabled() ? "on (level " + Afk.PERFORMANCE.level() + ")" : "off"));
+                            + " · performance: " + Afk.PERFORMANCE.describe());
                     return 1;
                 }))
                 .then(ClientCommands.literal("login")
@@ -68,6 +68,9 @@ final class Commands {
                 .then(ClientCommands.literal("perf")
                         .then(ClientCommands.literal("on").executes(c -> perf(true)))
                         .then(ClientCommands.literal("off").executes(c -> perf(false))))
+                .then(ClientCommands.literal("moments")
+                        .then(ClientCommands.literal("on").executes(c -> moments(true)))
+                        .then(ClientCommands.literal("off").executes(c -> moments(false))))
                 .then(ClientCommands.literal("cinematic").executes(c -> {
                     Minecraft mc = Minecraft.getInstance();
                     mc.execute(() -> Afk.CAMERA.toggleManual(mc));
@@ -95,6 +98,15 @@ final class Commands {
         return 1;
     }
 
+    private static int moments(boolean on) {
+        JsonObject cfg = Afk.BRAIN.config();
+        cfg.addProperty("moments", on);
+        Afk.BRAIN.saveConfig(cfg);
+        Afk.CAMERA.setMomentsEnabled(on);
+        Afk.CHAT.showHerobrine(on ? "Discovery moments on: title cards, and a short cinematic for the big ones." : "Discovery moments off.");
+        return 1;
+    }
+
     private static int perf(boolean on) {
         Minecraft mc = Minecraft.getInstance();
         Afk.PERFORMANCE.setEnabled(mc, on);
@@ -105,6 +117,6 @@ final class Commands {
     private static void help() {
         Afk.CHAT.showHerobrine("Tap Tab: I take over, tap again: you're back. B: cinematic camera. Talk to me: \"hb <anything>\" in chat "
                 + "(while I have control, just type; start with ! to talk to the server). /do <task>. In a crafting table or chest, use the box at the bottom. "
-                + "/afk login, /afk status, /afk perf on|off.");
+                + "/afk login, /afk status, /afk perf on|off, /afk moments on|off.");
     }
 }

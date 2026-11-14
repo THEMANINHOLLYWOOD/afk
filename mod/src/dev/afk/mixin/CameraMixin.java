@@ -13,6 +13,9 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 @Mixin(Camera.class)
 public abstract class CameraMixin {
     @Shadow
+    private boolean detached;
+
+    @Shadow
     protected abstract void setPosition(double x, double y, double z);
 
     @Shadow
@@ -26,6 +29,7 @@ public abstract class CameraMixin {
         if (pose != null) {
             setPosition(pose[0], pose[1], pose[2]);
             setRotation((float) pose[3], (float) pose[4]);
+            detached = pose[5] > 0.5; // false = first-person shot: the player's own body is not drawn
         }
     }
 

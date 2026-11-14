@@ -2,7 +2,7 @@
   "required": true,
   "package": "dev.afk.mixin",
   "compatibilityLevel": "JAVA_25",
-  "client": ["CameraMixin", "MouseHandlerMixin"],
+  "client": ["CameraMixin", "GameRendererMixin", "MouseHandlerMixin"],
   "injectors": {
     "defaultRequire": 1
   }

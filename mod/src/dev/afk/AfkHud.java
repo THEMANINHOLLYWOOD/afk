@@ -27,6 +27,7 @@ import org.joml.Matrix3x2fStack;
 final class AfkHud implements HudElement {
     private static final int INK = 0xF4EAD2;
     private static final int DIM = 0xA39C8A;
+    private static final int SOFT = 0xD9D1BD;
     private static final int EMBER = 0xFF8A3D;
     private static final int RED = 0xFF5A4E;
 
@@ -167,25 +168,27 @@ final class AfkHud implements HudElement {
         int pulse = thinking ? (int) (a * (0.55 + 0.45 * Math.sin(now / 180.0))) : a;
         dot(g, 10, (int) y + 1, 2, argb(online ? EMBER : DIM, pulse));
         float x = 16;
-        x += spaced(g, font, "HEROBRINE", x, y, 0.66f, argb(INK, a), 1.4f);
-        String st = !online ? "WAKING UP" : status.isEmpty() ? "WATCHING" : status.toUpperCase(Locale.ROOT);
-        spaced(g, font, "   ·   " + st, x, y, 0.6f, argb(DIM, a), 1.2f);
+        x += spaced(g, font, "HEROBRINE", x, y, snap(0.66f), argb(INK, a), 1.4f);
+        String busy = Afk.HANDS.busyLabel();
+        String st = busy != null ? busy.toUpperCase(Locale.ROOT) : !online ? "WAKING UP" : status.isEmpty() ? "WATCHING" : status.toUpperCase(Locale.ROOT);
+        spaced(g, font, "   ·   " + st, x, y, snap(0.6f), argb(DIM, a), 1.2f);
         if (!goal.isEmpty()) {
-            String gText = font.plainSubstrByWidth(goal.toUpperCase(Locale.ROOT), (int) (w * 0.42f / 0.6f));
-            float gw = spacedWidth(font, gText, 0.6f, 1.0f);
-            spaced(g, font, gText, w - 10 - gw, y, 0.6f, argb(DIM, a), 1.0f);
+            float gs = snap(0.6f);
+            String gText = font.plainSubstrByWidth(goal.toUpperCase(Locale.ROOT), (int) (w * 0.36f / gs));
+            float gw = spacedWidth(font, gText, gs, 1.0f);
+            spaced(g, font, gText, w - 10 - gw, y, gs, argb(DIM, a), 1.0f);
         }
     }
 
     private void bottomBarAgent(GuiGraphicsExtractor g, Font font, Minecraft mc, int w, int h, int barH, int a, long now) {
         boolean online = now - lastContactMs < 15_000;
         String text = !online ? "Herobrine is waking up..." : thought.isEmpty() ? "..." : thought;
-        float scale = 0.78f;
+        float scale = snap(0.78f);
         List<String> lines = wrap(font, text, (int) (w * 0.66f / scale));
         if (lines.size() > 2) lines = lines.subList(lines.size() - 2, lines.size());
         int fade = (int) (a * clamp((now - thoughtAtMs) / 250f + 0.2f));
         int color = argb(online ? INK : DIM, Math.max(fade, a / 3));
-        float lineH = 10 * scale;
+        float lineH = 9 * scale + 2;
         float y0 = h - barH + (barH - lines.size() * lineH) / 2f + 1;
         for (int i = 0; i < lines.size(); i++) {
             float lw = font.width(lines.get(i)) * scale;
@@ -197,57 +200,58 @@ final class AfkHud implements HudElement {
         spaced(g, font, vitals, w - 10 - vw, h - barH + (barH - 5) / 2f, 0.5f, argb(DIM, a), 1f);
     }
 
-    private void sidePanel(GuiGraphicsExtractor g, Font font, int w, int barH, int a) {
-        float scale = 0.56f;
-        int colW = Math.max(80, Math.min(130, (int) (w * 0.24f)));
-        float x = w - 10 - colW;
-        float y = barH + 10;
-        float lh = 10 * scale;
-        int maxW = (int) (colW / scale);
-        g.fill((int) x - 5, (int) y, (int) x - 4, (int) (y + 4), argb(EMBER, a * 3 / 4));
+    private record Row(String text, int rgb, int alpha, int kind) {} // kind: 0 body, 1 header, 2 current step, 3 action
 
-        y = section(g, font, "PLAN", x, y, scale, a);
+    private void sidePanel(GuiGraphicsExtractor g, Font font, int w, int barH, int a) {
+        float scale = snap(0.6f);
+        int colW = Math.max(100, Math.min(156, (int) (w * 0.26f)));
+        int maxW = (int) ((colW - 16) / scale);
+        List<Row> rows = new ArrayList<>();
+
         List<String> p = plan;
+        if (!p.isEmpty() || !lastAction.isEmpty()) rows.add(new Row("PLAN", EMBER, 235, 1));
         for (int i = 0; i < p.size(); i++) {
             boolean current = i == step;
-            String line = font.plainSubstrByWidth(p.get(i), maxW - 8);
-            if (current) dot(g, (int) x, (int) (y + 1.5f), 1, argb(EMBER, a));
-            text(g, font, line, x + 4, y, scale, argb(current ? INK : DIM, current ? a : a * 3 / 4));
-            y += lh;
+            rows.add(new Row(font.plainSubstrByWidth(p.get(i), maxW), current ? INK : SOFT, current ? 255 : 200, current ? 2 : 0));
         }
-        if (!lastAction.isEmpty()) {
-            text(g, font, font.plainSubstrByWidth("› " + lastAction, maxW), x + 4, y, scale, argb(EMBER, a * 3 / 4));
-            y += lh;
-        }
+        if (!lastAction.isEmpty()) rows.add(new Row(font.plainSubstrByWidth(lastAction, maxW), EMBER, 220, 3));
         if (!notes.isEmpty()) {
-            y = section(g, font, "MEMORY", x, y + 3, scale, a);
-            for (String n : notes) {
-                for (String l : limit(wrap(font, n, maxW - 4), 2)) {
-                    text(g, font, l, x + 4, y, scale, argb(DIM, a * 3 / 4));
-                    y += lh;
-                }
-            }
+            rows.add(new Row("MEMORY", EMBER, 235, 1));
+            for (String n : notes) for (String l : limit(wrap(font, n, maxW), 2)) rows.add(new Row(l, SOFT, 200, 0));
         }
         List<String> sees = sees();
         if (!sees.isEmpty()) {
-            y = section(g, font, "SEES", x, y + 3, scale, a);
-            for (String s : sees) {
-                text(g, font, font.plainSubstrByWidth(s, maxW - 4), x + 4, y, scale, argb(DIM, a * 3 / 4));
-                y += lh;
-            }
+            rows.add(new Row("SEES", EMBER, 235, 1));
+            for (String v : sees) rows.add(new Row(font.plainSubstrByWidth(v, maxW), SOFT, 200, 0));
         }
         if (!context.isEmpty()) {
-            y = section(g, font, "CONTEXT", x, y + 3, scale, a);
-            for (String l : limit(wrap(font, context, maxW - 4), 3)) {
-                text(g, font, l, x + 4, y, scale, argb(DIM, a * 3 / 4));
-                y += lh;
-            }
+            rows.add(new Row("CONTEXT", EMBER, 235, 1));
+            for (String l : limit(wrap(font, context, maxW), 3)) rows.add(new Row(l, SOFT, 200, 0));
         }
-    }
+        if (rows.isEmpty()) return;
 
-    private float section(GuiGraphicsExtractor g, Font font, String title, float x, float y, float scale, int a) {
-        spaced(g, font, title, x, y, scale * 0.9f, argb(EMBER, a * 4 / 5), 1.3f);
-        return y + 10 * scale + 1;
+        float lineH = 9 * scale + 1.5f;
+        float height = 5;
+        for (int i = 0; i < rows.size(); i++) height += lineH + (rows.get(i).kind == 1 && i > 0 ? 3 : 0);
+        height += 4;
+        int x = w - 8 - colW;
+        int y = barH + 8;
+        g.fill(x, y, x + colW, (int) (y + height), argb(0x06070B, a * 120 / 255));
+        g.fill(x, y, x + 1, (int) (y + height), argb(EMBER, a * 190 / 255));
+        float ty = y + 5;
+        for (int i = 0; i < rows.size(); i++) {
+            Row r = rows.get(i);
+            int alpha = a * r.alpha / 255;
+            if (r.kind == 1) {
+                if (i > 0) ty += 3;
+                spaced(g, font, r.text, x + 7, ty, scale, argb(r.rgb, alpha), 1.2f);
+            } else {
+                if (r.kind == 2) dot(g, x + 8, (int) (ty + 4 * scale), 1, argb(EMBER, alpha));
+                String prefix = r.kind == 3 ? "> " : "";
+                text(g, font, prefix + r.text, x + 12, ty, scale, argb(r.rgb, alpha));
+            }
+            ty += lineH;
+        }
     }
 
     private List<String> sees() {
@@ -292,23 +296,33 @@ final class AfkHud implements HudElement {
         }
     }
 
+    /** A film-style lower third: small ember label, big title, thin rule. */
     private void cardDraw(GuiGraphicsExtractor g, Font font, int w, int h, long now) {
         long t = now - cardAtMs;
         if (cardLabel.isEmpty() || t > 5200) return;
         float alpha = t < 500 ? t / 500f : t > 3800 ? 1 - (t - 3800) / 1400f : 1;
         int a = (int) (255 * clamp(alpha));
         if (a < 8) return;
-        float rise = (1 - clamp(t / 900f)) * 4;
-        float y = h * 0.6f + rise;
-        float lw = spacedWidth(font, cardLabel, 0.7f, 2f);
-        spaced(g, font, cardLabel, (w - lw) / 2f, y, 0.7f, argb(EMBER, a), 2f);
+        float slide = (1 - clamp(t / 700f));
+        slide = slide * slide * 10;
+        float x = Math.round(w * 0.07f) - slide;
+        float barH = Math.round(h * 0.10f * barValue(now));
+        float y = h - barH - 46;
+        float small = snap(0.7f);
+        float big = snap(1.5f);
+        spaced(g, font, cardLabel, x, y, small, argb(EMBER, a), 2f);
         if (!cardTitle.isEmpty()) {
             String title = cardTitle.toUpperCase(Locale.ROOT);
-            float tw = spacedWidth(font, title, 1.5f, 1.5f);
-            spaced(g, font, title, (w - tw) / 2f, y + 9, 1.5f, argb(INK, a), 1.5f);
-            float lineW = Math.min(w * 0.5f, tw + 20);
-            g.fill((int) ((w - lineW) / 2), (int) (y + 25), (int) ((w + lineW) / 2), (int) (y + 25) + 1, argb(INK, a / 3));
+            float tw = spaced(g, font, title, x, y + 10, big, argb(INK, a), 1.5f);
+            g.fill((int) x, (int) (y + 27), (int) (x + Math.max(tw, 40) * clamp(t / 900f)), (int) (y + 27) + 1, argb(INK, a / 3));
         }
+    }
+
+    /** How far vanilla chat should be lifted so it sits above the bottom letterbox bar (GUI units). */
+    int chatLift() {
+        Minecraft mc = Minecraft.getInstance();
+        float k = barValue(System.currentTimeMillis());
+        return k < 0.01f ? 0 : Math.round(mc.getWindow().getGuiScaledHeight() * 0.10f * k) - 6;
     }
 
     // ------------------------------------------------------------------ world markers
@@ -460,6 +474,12 @@ final class AfkHud implements HudElement {
         g.fill(x0, y1 - l, x0 + 1, y1, c);
         g.fill(x1 - l, y1 - 1, x1, y1, c);
         g.fill(x1 - 1, y1 - l, x1, y1, c);
+    }
+
+    /** A text scale close to the one asked for that lands on whole screen pixels, so the pixel font stays crisp. */
+    private static float snap(float desired) {
+        double gui = Math.max(1, Minecraft.getInstance().getWindow().getGuiScale());
+        return (float) (Math.max(2, Math.round(desired * gui)) / gui);
     }
 
     private static int argb(int rgb, int alpha) {

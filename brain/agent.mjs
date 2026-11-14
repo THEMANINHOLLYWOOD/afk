@@ -45,11 +45,25 @@ Baritone commands (only while you have control)
 - farm: harvest and replant ripe crops nearby.
 - home / sethome / surface / stop.
 - set <setting> <value> for: legitMineYLevel, allowSprint, allowPlace, allowParkour, allowDownward, minYLevelWhileMining, maxYLevelWhileMining, mineScanDroppedItems, avoidance, mobAvoidanceRadius, itemSaver, itemSaverThreshold.
-You cannot fight, eat, sleep, or open chests yourself. Say so plainly when that's what's needed.
+With legit mode, "mine" only reacts to ores within a few blocks. When oresInSight shows one further away, goto its coordinates first. Set legitMineYLevel to the depth you want to tunnel at (about 16 for iron, -54 for diamonds).
+
+Your hands (only while you have control)
+Put these in "act": a list of up to 4 steps, run in order. Baritone holds still while they run and carries on afterwards. Each step reports back as a [hands] event.
+- {"do":"craft","item":"wooden_pickaxe","count":1}: craft with the recipe book, like a player clicking it. Small recipes use the 2x2 grid in the inventory. Bigger ones need a crafting table: a table in reach is used, otherwise one from the inventory is placed and picked back up afterwards. You can only craft what you hold materials for, so craft in order: planks from logs, then sticks, then a crafting_table, then tools. If materials are missing, the result lists what is craftable right now.
+- {"do":"use","x":0,"y":0,"z":0}: right-click a block you can see within about 4 blocks: open a chest, furnace or crafting table, a door, a bed. usableInSight lists these with coordinates; goto next to one first if it is further away.
+- {"do":"stash","item":"cobblestone"} and {"do":"take","item":"iron_ingot","count":8}: with a chest or furnace open (openContainer shows what is inside), shift-click stacks in or out. "item":"all" moves everything. In a furnace, stashing ore and fuel puts each in the right slot; come back later and take the result.
+- {"do":"close"}: close the open container. Always close it before walking away.
+- {"do":"place","item":"torch"}: place a block from the inventory next to you.
+- {"do":"sleep"}: get into a bed in reach, at night.
+- {"do":"eat"} and {"do":"equip"}: rarely needed, because of your reflexes.
+Your body has reflexes that act on their own while you have control: it hits hostile mobs that come within reach with your best weapon, runs from a creeper that is about to explode, eats when hungry if there is food, and puts on armour it is carrying. It cannot chase, shoot or block, so staying out of trouble still matters.
+You can't trade, enchant, brew, build structures or talk to other players yet. Say so plainly when that's what is needed.
+
+Starting from nothing, the classic order works: logs, planks, sticks, a crafting table, a wooden pickaxe; then stone for stone tools, a sword and a furnace; coal and iron from caves or tunnels; smelt the iron for iron tools and armour; then diamonds deep down. Keep food and a sword on you.
 
 Staying alive (this is the human's real character and items; dying drops everything)
-- Night is dangerous and you cannot fight. Watch minutesUntilDusk. Head home before dusk and stay there, or be underground in a tunnel you dug with no sky above. Never roam the surface at night. Don't hide in shallow dead-end pits: creepers follow.
-- If a hostile mob is close in the open, move away across open ground toward home or into a lit area, not into dark unknown places.
+- Night is dangerous. Your reflexes can handle a zombie or two in reach if you hold a sword, but not groups, skeletons or creepers. Watch minutesUntilDusk. Before dusk, be home (sleep if there is a bed in reach), or underground in a tunnel you dug with no sky above. Don't roam the surface at night, and don't hide in shallow dead-end pits: creepers follow.
+- If hostile mobs are close in the open, move away across open ground toward home or into a lit area, not into dark unknown places.
 - At half health or less, leave whatever you were doing and get safe. If food is 6 or less, set allowSprint false and ask the human for food.
 - Leave other players' things and builds alone. If you notice you picked up someone else's gear, say so.
 
@@ -61,9 +75,9 @@ Each reply
 Start with one to three plain sentences for the panel on their screen, like a player narrating a stream: what you notice, what you're doing next, and why. First person, present tense, no markdown, under about 50 words.
 Then end with exactly one line:
 ACTION: {"cmd": null, "wait": 25, "goal": "few words", "plan": ["current step", "next step"], "step": 0}
-Optional fields: "target": {"x":0,"y":0,"z":0,"label":"short"} (a spot you are heading to), "context": one line about the situation or what the human was doing, "say": a chat reply to the human, "takeControl": true, "releaseControl": true, "serverCommand": "/...", "craft": {...}, "memory": one fact worth keeping (where things are), "lesson": a lesson learned, "skill": {"name": "short-name", "how": "a reusable recipe of steps"}.
+Optional fields: "act": [ ... ] (hands, see above), "target": {"x":0,"y":0,"z":0,"label":"short"} (a spot you are heading to), "context": one line about the situation or what the human was doing, "say": a chat reply to the human, "takeControl": true, "releaseControl": true, "serverCommand": "/...", "craft": {...}, "memory": one fact worth keeping (where things are), "lesson": a lesson learned, "skill": {"name": "short-name", "how": "a reusable recipe of steps"}.
 - cmd: a Baritone command, a list of up to 3, or null to let the current activity continue. Most check-ins should be null; re-issuing makes Baritone re-plan.
-- wait: seconds until your next routine check-in (10 to 90). You are checked in early on damage, death, a full inventory, a close hostile, Baritone going idle, dusk, chat, or a change of control.
+- wait: seconds until your next routine check-in (10 to 90). You are checked in early on damage, death, a full inventory, a close hostile, Baritone going idle, your hands finishing, dusk, chat, or a change of control.
 
 Getting better
 You keep a playbook: lessons and skills that you are shown at the start of every session. When you die, fail, or succeed at something new, add a short "lesson" (what happened and what to do instead). When the human teaches you a way of doing something, or you find a sequence that works, save it as a "skill" with a short name. Read the playbook and actually follow it.`;
@@ -282,6 +296,7 @@ function parseReply(text) {
       takeControl: a.takeControl === true,
       releaseControl: a.releaseControl === true,
       serverCommand: str(a.serverCommand, 200),
+      act: Array.isArray(a.act) ? a.act.filter((x) => x && typeof x === 'object' && typeof x.do === 'string').slice(0, 4) : [],
       craft: a.craft && typeof a.craft.item === 'string' ? { item: a.craft.item, count: Math.max(1, Math.min(640, Number(a.craft.count) || 1)) } : null,
       memory: str(a.memory, 200),
       lesson: str(a.lesson, 240),
@@ -329,6 +344,8 @@ async function main() {
   let problems = [];
   let pendingDeath = null;
   let idleSince = null;
+  let backlog = []; // events not yet shown to the brain
+  let handsDone = []; // finished hands steps waiting to be reported
   let waitingNote = '';
   const note = (t) => { if (t !== waitingNote) log('wait', t); waitingNote = t; };
 
@@ -341,9 +358,12 @@ async function main() {
     waitingNote = '';
     const control = state.control ?? {};
     const agent = control.mode === 'agent';
-    const events = poller.take();
-    const chats = events.filter((e) => e.kind === 'chat').map((e) => e.text);
-    if (events.some((e) => e.kind === 'death')) pendingDeath = events.find((e) => e.kind === 'death').text;
+    const fresh = poller.take();
+    backlog.push(...fresh);
+    if (backlog.length > 60) backlog = backlog.slice(-60);
+    handsDone.push(...fresh.filter((e) => e.kind === 'hands').map((e) => e.text));
+    const chats = fresh.filter((e) => e.kind === 'chat').map((e) => e.text);
+    if (fresh.some((e) => e.kind === 'death')) pendingDeath = fresh.find((e) => e.kind === 'death').text;
 
     // First time in a world: remember home.
     if (!memory.home && state.baritone?.ready && agent) {
@@ -385,7 +405,13 @@ async function main() {
       pendingDeath = null;
     }
 
-    if (agent && last && !reasons.length) {
+    if (agent && handsDone.length && !state.handsBusy) {
+      reasons.push(`your hands finished: ${handsDone.join('; ')}`);
+      handsDone = [];
+    }
+    if (!agent) handsDone = [];
+
+    if (agent && last && !reasons.length && !state.handsBusy) {
       const since = Date.now() - last.at;
       const b = last.state;
       idleSince = state.baritone?.active ? null : (idleSince ?? Date.now());
@@ -429,7 +455,8 @@ async function main() {
     }
     for (const p of problems) lines.push(`Problem: ${p}`);
     problems = [];
-    const notable = events.filter((e) => !['chat', 'mode', 'task'].includes(e.kind)).slice(-12);
+    const notable = backlog.filter((e) => !['chat', 'mode', 'task', 'hands'].includes(e.kind)).slice(-12);
+    backlog = [];
     if (notable.length) lines.push('Events:\n' + notable.map((e) => `- [${e.kind}] ${e.text}`).join('\n'));
     lines.push('State: ' + JSON.stringify(state));
 
@@ -459,7 +486,7 @@ async function main() {
     const { thought, action, problem } = parseReply(reply);
     if (thought) { await show(id, 'thought', thought); log('says', thought); }
     if (problem) problems.push(problem);
-    const a = action ?? { commands: [], wait: 20 };
+    const a = action ?? { commands: [], act: [], wait: 20 };
     const nowAgent = poller.latest?.control?.mode === 'agent';
     const fromChat = chats.length > 0;
 
@@ -486,7 +513,11 @@ async function main() {
         problems.push(`"${command}" was refused: ${e.message}`);
       }
     }
-    if (!canAct && a.commands.length) problems.push('You sent commands without having control; they were not run.');
+    if (canAct && a.act?.length) {
+      try { const r = await bridge('/act', { actions: a.act }); log('hands', r.result); await show(++entryId, 'action', a.act.map((x) => `${x.do}${x.item ? ' ' + x.item : ''}`).join(', ')); }
+      catch (e) { problems.push(`Your "act" steps were refused: ${e.message}`); }
+    }
+    if (!canAct && (a.commands.length || a.act?.length)) problems.push('You sent commands without having control; they were not run.');
     for (const p of problems) log('problem', p);
 
     let changed = false;

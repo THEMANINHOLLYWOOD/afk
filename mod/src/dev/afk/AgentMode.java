@@ -94,6 +94,7 @@ final class AgentMode {
             Afk.HUD.toast("HEROBRINE HAS CONTROL", "");
             Afk.EVENTS.add("mode", "the human handed you control (" + why + ")");
         } else {
+            Afk.HANDS.abortAll("the human took control");
             Afk.BARITONE.onAgentStop();
             Afk.CAMERA.stopAgent();
             Afk.ACTIVITY.beginPlayerSession(mc);

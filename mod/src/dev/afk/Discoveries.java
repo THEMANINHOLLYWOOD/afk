@@ -24,6 +24,10 @@ import net.minecraft.world.level.levelgen.Heightmap;
  * ore, a big cave, the Nether, the End. Remembered across sessions in gameDir/afk/discoveries.json.
  */
 final class Discoveries {
+    /** Creatures worth a camera move the first time; the rest get a title card only. */
+    private static final Set<String> RARE = Set.of("warden", "ender_dragon", "wither", "elder_guardian", "ravager", "sniffer",
+            "allay", "axolotl", "panda", "mooshroom", "ghast", "piglin_brute", "iron_golem", "camel", "armadillo", "creaking");
+
     private final Set<String> seen = new HashSet<>();
     private String lastBiome = "";
     private String lastDimension = "";
@@ -67,7 +71,8 @@ final class Discoveries {
         for (StateSampler.SeenMob mob : Afk.STATE.seenMobs()) {
             if (mob.entity() instanceof Player) continue;
             if (mob.distance() < 24 && firstTime("mob:" + mob.id())) {
-                Afk.CAMERA.moment("NEW CREATURE", pretty(mob.id()), 4.5);
+                boolean rare = RARE.contains(mob.id());
+                Afk.CAMERA.moment("NEW CREATURE", pretty(mob.id()), rare ? 6.0 : 4.5, rare);
                 break;
             }
         }

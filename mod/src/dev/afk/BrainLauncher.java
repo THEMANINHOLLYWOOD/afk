@@ -102,6 +102,7 @@ final class BrainLauncher {
             env.put("PATH", String.join(File.pathSeparator, "/opt/homebrew/bin", "/usr/local/bin", home + "/.local/bin",
                     home + "/.npm-global/bin", "/usr/bin", "/bin", "/usr/sbin", "/sbin", env.getOrDefault("PATH", "")));
             env.put("AFK_AUTOSTARTED", "1");
+            env.put("AFK_BRIDGE_URL", "http://127.0.0.1:" + Afk.PORT);
             env.put("AFK_PROVIDER", str(cfg, "provider", "claude"));
             String model = str(cfg, "model", "");
             if (!model.isBlank()) env.put("AFK_MODEL", model);

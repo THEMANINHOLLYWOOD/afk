@@ -2,22 +2,26 @@
 
 **Tap Tab and Herobrine takes over.** AFK is a Minecraft modpack (Java 26.3, Fabric) where an AI agent, signed in with *your own* Claude or ChatGPT account, takes control of your character and plays for you, filmed by a cinematic camera. Tap Tab again and you're back.
 
-> Early pre-release (0.1.0). Built and tested on macOS with Minecraft 26.3. Expect rough edges.
+> Pre-release (0.2.0). Built and tested on macOS with Minecraft 26.3. Expect rough edges.
 
 ## What it does
 
-- **Tab takeover.** Tap Tab: Herobrine has your body. Tap again: it switches off and Baritone pauses mid-task, so it resumes where it left off next time. Holding Tab still shows the player list.
-- **Plays legitimately.** Herobrine only knows what a player in your body could see or hear: ores and mobs in line of sight, your inventory, health and coordinates, and the tab list. Baritone is locked to legit mining (it only digs ores it has seen and otherwise strip-mines), and commands that search hidden blocks are blocked. It explores, tunnels and discovers the world like a person would.
-- **Cinematic camera.** While Herobrine plays, the view becomes a film: over-the-shoulder, side tracking, low hero angles, orbits, wide shots, crane and top-down shots, fly-bys from a spot ahead on its route, and close-ups of the block being mined. Springs carry the camera and its aim, the lens pushes in slowly, and letterbox bars frame it. The camera stays out of solid blocks and keeps a clear line to you, so it never works as x-ray.
-- **Cinematic moments for you.** Press **B** while exploring for a GTA-style cinematic camera you can still walk around in. Firsts get a short shot and a title card on their own: a new biome, a creature you've never seen, your first diamond, a big cave, the Nether, the End.
+- **Tab takeover.** Tap Tab: Herobrine has your body and your mouse stops steering it. Tap again: it switches off at once and Baritone pauses mid-task, so it resumes where it left off next time. Holding Tab still shows the player list.
+- **Plays legitimately.** Herobrine only knows what a player in your body could see or hear: ores and mobs in line of sight, usable blocks it can see (chests, beds, tables), your inventory, health and coordinates, and the tab list. For ores and anything else hidden, Baritone is locked to legit mining: it only digs what has been seen and otherwise tunnels to find more. Trees, crops and common ground are in plain sight, so it simply walks to those. Commands that search hidden blocks are blocked.
+- **Real hands.** It does what a player does with the mouse and inventory, the way a player does it (in reach, in view, looking at it):
+  - crafts with the recipe book, placing a crafting table when a recipe needs one and picking it back up afterwards
+  - opens chests and furnaces, moves exact amounts in and out, and closes them
+  - places blocks, uses doors and beds, and sleeps through the night
+- **Reflexes.** While it has control, the body reacts without waiting for the AI: it hits hostile mobs in reach with your best weapon, runs from a creeper about to blow, eats when hungry, and puts on armor it is carrying.
+- **Cinematic camera.** While Herobrine plays, the view becomes a film: over-the-shoulder, side tracking, low hero angles, orbits, wide, crane and top-down shots, fly-bys from a spot ahead on its route, and close-ups of the block being mined. The camera rides on the player with spring smoothing, the lens pushes in slowly, and letterbox bars frame it. In tunnels and thick foliage it cuts to a first-person shot. It stays out of solid blocks and keeps a clear line to you, so it never works as x-ray.
+- **Cinematic moments for you.** Press **B** while exploring for the same camera while you keep playing. Firsts get a lower-third title card: a new biome, a new creature, your first of an ore, a big cave, the Nether, the End. The big ones also get a short cinematic when you're not busy. `/afk moments off` turns this off.
 - **See what it's thinking.** A small panel shows its live commentary, its plan, what it remembers and what it can see. Markers in the world show its route, destination, home, the ores and mobs in its sight, and the block it's mining.
 - **Talk to it in plain words.** In chat, start with `hb` (`hb mine some iron`, `hb what did you do?`). While Herobrine has control, everything you type goes to it; start with `!` to talk to the server. It answers in your chat, takes or hands back control when you ask, and runs a server command only when you explicitly asked for one. Voice works through macOS Dictation into the chat box.
 - **`/do <task>`.** Give it a task and it takes over: `/do get me 20 logs`, `/do farm the wheat`. `/do stop` takes you back.
 - **It remembers what you were doing.** While you play, AFK keeps a short local diary: blocks broken and placed, containers opened, where you travelled, your chat and commands, and what you gained or used. When you hand over, Herobrine reads it and continues your work.
-- **Crafting and chests by typing.** Every container screen gets an "Ask Herobrine" box. At a crafting table: `3 pickaxes`, `16 torches` (it uses the recipe book, just like clicking). In a chest: `sort`, `sort potions`.
-- **Farming.** `hb farm` (or `/do farm`) harvests ripe crops and replants them.
+- **Crafting and chests by typing.** Every container screen gets an "Ask Herobrine" box. In your inventory or at a crafting table: `3 pickaxes`, `16 torches`. In a chest: `sort`, `sort potions`.
 - **It learns.** Herobrine keeps a playbook of *lessons* (written after every death or failure) and *skills* (ways of doing things it worked out or you taught it), and reads it at the start of every session. It doesn't retrain a model; it gets better by following its own growing notes.
-- **Keeps 24 FPS or better.** A performance governor steps render distance, entity distance, clouds and, if needed, shaders down when frames drop, and back up when there's headroom. It never goes past your own settings and puts them back when you leave.
+- **Keeps 24 FPS or better.** When frames drop, AFK walks down a ladder one step at a time: first your shader pack's own lower quality profiles (for example Complementary's High, Medium, Low, Potato), then shorter render distance, fewer far entities and no clouds, and only then shaders off. With headroom it climbs back. It never goes above your own settings and puts them back when you leave. `/afk perf off` disables it.
 - **Looks good by default.** Complementary Unbound shaders with Iris and Sodium, Faithful 32x, Fresh Animations, Fast Better Grass, Low On Fire and Default Dark Mode, plus max brightness and no Darkness-effect pulsing.
 
 ## Install
@@ -30,7 +34,7 @@ You need:
    - **Claude**: [Claude Code](https://claude.com/claude-code), signed in (`claude auth login`), or
    - **Codex**: the Codex CLI (`npm install -g @openai/codex`), signed in (`codex login`). Codex support is new and less tested.
 
-Then download `AFK-0.1.0.mrpack` from [Releases](../../releases) and import it in your launcher. In the game, `/afk login` opens the sign-in for you, and `/afk provider codex` switches to Codex.
+Then download the `.mrpack` from [Releases](../../releases) and import it in your launcher. In the game, `/afk login` opens the sign-in for you, and `/afk provider codex` switches to Codex.
 
 Herobrine's brain (`afk/brain/agent.mjs` in the game folder) starts automatically when you join a world. Settings are in `config/afk.json`.
 
@@ -43,7 +47,8 @@ Herobrine's brain (`afk/brain/agent.mjs` in the game folder) starts automaticall
 | **B** | Cinematic camera while you play |
 | `hb <anything>` in chat | Talk to Herobrine |
 | `/do <task>`, `/do stop` | Give a task / take control back |
-| `/afk status`, `/afk login`, `/afk perf on\|off` | Status, sign-in, performance governor |
+| `/afk status`, `/afk login` | Status, sign-in |
+| `/afk perf on\|off`, `/afk moments on\|off` | Performance ladder, discovery moments |
 
 ## Privacy
 
@@ -51,19 +56,23 @@ Everything runs on your computer. The mod talks to Herobrine's brain over a loca
 
 ## Honest limits
 
-- Herobrine can't fight, eat, sleep or open chests by itself yet; it tells you when it needs you.
-- Baritone's route planner knows the layout of terrain the game has loaded (that's how pathfinding works). Ore finding is legit, but routes aren't limited to what's been seen.
+- Herobrine fights only what comes into reach: it can't chase, shoot a bow or block. It can't trade, enchant, brew or build structures yet.
+- It can only craft recipes your recipe book has unlocked, like clicking them yourself.
+- Baritone's route planner knows the layout of terrain the game has loaded (that's how pathfinding works). Finding ores is legit, but routes aren't limited to what's been seen.
 - On a shared server or Realm, Herobrine plays as you, so follow the server's rules about automation.
 - A custom AFK shader pack is planned; research notes are in [docs/shader-research.md](docs/shader-research.md).
 
 ## Build from source
 
 ```bash
-JDK_HOME=/path/to/jdk-25 mod/build.sh          # builds mod/build/afk-<version>.jar against your local 26.3 install
-python3 pack/build-pack.py mod/build/afk-0.1.0.jar <owner>/<repo>   # builds dist/AFK-<version>.mrpack
+JDK_HOME=/path/to/jdk-25 mod/build.sh                               # mod/build/afk-<version>.jar
+python3 pack/build-pack.py mod/build/afk-0.2.0.jar <owner>/<repo>   # dist/AFK-<version>.mrpack
+dev/test-client.sh /tmp/afk-test "New World"                        # offline test copy of the game
 ```
 
 The mod compiles straight against the game jar (26.x ships readable names), so no Gradle is needed. It expects Fabric API, Baritone and Iris jars in your `mods` folder.
+
+`dev/test-client.sh` starts an offline copy of the game in its own folder with a copy of one of your singleplayer worlds (the original is never touched) and test hooks on port 25600, so the mod can be driven and screenshotted by script without the launcher or an account.
 
 ## Credits
 

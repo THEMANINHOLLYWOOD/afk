@@ -22,7 +22,8 @@ import org.slf4j.LoggerFactory;
  */
 public final class Afk implements ClientModInitializer {
     public static final String ID = "afk";
-    public static final int PORT = 25599;
+    /** Override with -Dafk.port=<n> (used by the offline test client so it can run beside a real game). */
+    public static final int PORT = Integer.getInteger("afk.port", 25599);
     static final Logger LOG = LoggerFactory.getLogger("afk");
 
     static final EventLog EVENTS = new EventLog(300);
@@ -33,6 +34,7 @@ public final class Afk implements ClientModInitializer {
     static final StateSampler STATE = new StateSampler();
     static final BaritoneLink BARITONE = new BaritoneLink();
     static final CinematicCamera CAMERA = new CinematicCamera();
+    static final Hands HANDS = new Hands();
     static final ChatAgent CHAT = new ChatAgent();
     static final ContainerAssistant CONTAINERS = new ContainerAssistant();
     static final PerformanceGovernor PERFORMANCE = new PerformanceGovernor();
@@ -54,6 +56,18 @@ public final class Afk implements ClientModInitializer {
         // Hold Tab still shows the player list; a quick tap toggles Herobrine without flashing it.
         HudElementRegistry.replaceElement(VanillaHudElements.PLAYER_LIST,
                 original -> (graphics, delta) -> { if (!MODE.suppressPlayerList()) original.extractRenderState(graphics, delta); });
+        // Chat stays readable: it moves up to sit above the bottom letterbox bar.
+        HudElementRegistry.replaceElement(VanillaHudElements.CHAT, original -> (graphics, delta) -> {
+            int lift = HUD.chatLift();
+            if (lift <= 0) {
+                original.extractRenderState(graphics, delta);
+                return;
+            }
+            graphics.pose().pushMatrix();
+            graphics.pose().translate(0, -lift);
+            original.extractRenderState(graphics, delta);
+            graphics.pose().popMatrix();
+        });
         // While the camera is cinematic, the vanilla HUD steps aside so the picture stays clean.
         for (Identifier element : List.of(VanillaHudElements.HOTBAR, VanillaHudElements.HEALTH_BAR, VanillaHudElements.FOOD_BAR,
                 VanillaHudElements.ARMOR_BAR, VanillaHudElements.AIR_BAR, VanillaHudElements.EXPERIENCE_LEVEL, VanillaHudElements.INFO_BAR,
@@ -67,6 +81,7 @@ public final class Afk implements ClientModInitializer {
             MODE.tick(mc);
             BARITONE.tick(mc);
             STATE.tick(mc);
+            HANDS.tick(mc);
             ACTIVITY.tick(mc);
             DISCOVERIES.tick(mc);
             CAMERA.tick(mc);
@@ -85,9 +100,12 @@ public final class Afk implements ClientModInitializer {
             DISCOVERIES.load();
             VisualDefaults.applyOnce(mc);
             BRAIN.ensureConfig();
+            com.google.gson.JsonObject cfg = BRAIN.config();
+            if (cfg.has("moments") && !cfg.get("moments").getAsBoolean()) CAMERA.setMomentsEnabled(false);
         });
         BridgeServer.start(PORT);
         ClientLifecycleEvents.CLIENT_STOPPING.register(mc -> {
+            PERFORMANCE.restore(mc); // your own render and shader settings go back before the game saves them
             BridgeServer.stop();
             BRAIN.stop();
             ACTIVITY.save();

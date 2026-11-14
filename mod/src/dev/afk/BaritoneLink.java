@@ -22,7 +22,8 @@ import net.minecraft.client.Minecraft;
 
 /**
  * Herobrine's legs. Only a small, legit set of Baritone commands is allowed:
- *  - legitMine is forced on, so `mine` only digs ores that have actually been seen;
+ *  - for ores and anything else hidden, legitMine is forced on, so `mine` only digs what has actually been seen;
+ *    trees, crops and common ground (stone, dirt, sand) are in plain sight and may be walked to directly;
  *  - `goto` takes coordinates only (never a block name, which would search hidden blocks);
  *  - nothing that scans the world for blocks (`find`, `goto <block>`, ...) is reachable.
  * Commands are refused unless Herobrine has control.
@@ -41,7 +42,15 @@ final class BaritoneLink {
     private static final Pattern WORD = Pattern.compile("^[a-z0-9_:]+$");
     private static final long BRAIN_TIMEOUT_MS = 180_000;
 
+    /** Things a player can simply see or knows are everywhere: Baritone may walk to these directly. */
+    private static final Set<String> PLAIN_SIGHT = Set.of(
+            "stone", "cobblestone", "deepslate", "cobbled_deepslate", "dirt", "grass_block", "sand", "red_sand", "gravel", "clay",
+            "netherrack", "end_stone", "snow", "snow_block", "ice", "sandstone", "andesite", "diorite", "granite", "tuff", "calcite",
+            "basalt", "blackstone", "terracotta", "moss_block", "wheat", "carrots", "potatoes", "beetroots", "sugar_cane", "bamboo",
+            "cactus", "pumpkin", "melon", "kelp", "nether_wart", "cocoa", "sweet_berry_bush", "red_mushroom", "brown_mushroom");
+
     private IBaritone baritone;
+    private volatile boolean legit = true;
     private boolean initFailed;
     private boolean pausedForHuman;
     private int tick;
@@ -95,7 +104,7 @@ final class BaritoneLink {
 
     private void enforceLegit() {
         Settings s = BaritoneAPI.getSettings();
-        s.legitMine.value = true;
+        s.legitMine.value = legit;
         s.renderPath.value = false;
         s.renderGoal.value = false;
         s.renderSelectionBoxes.value = false;
@@ -143,6 +152,19 @@ final class BaritoneLink {
     boolean execute(String command) {
         if (baritone == null) throw new IllegalStateException("Baritone is not ready (join a world first)");
         if (!Afk.MODE.isAgent()) throw new IllegalStateException("the human has control right now");
+        String[] parts = command.toLowerCase(Locale.ROOT).split("\\s+");
+        if (parts[0].equals("mine")) {
+            // Ores and anything else hidden: only what has been seen. Trees, crops and common ground: walk to them.
+            boolean hidden = false;
+            for (int i = 1; i < parts.length; i++) {
+                String id = parts[i].replace("minecraft:", "");
+                if (id.matches("\\d+")) continue;
+                boolean plain = PLAIN_SIGHT.contains(id) || id.endsWith("_log") || id.endsWith("_stem") || id.endsWith("_leaves") || id.endsWith("_wood");
+                if (!plain) hidden = true;
+            }
+            legit = hidden;
+            enforceLegit();
+        }
         return baritone.getCommandManager().execute(command);
     }
 
@@ -160,6 +182,17 @@ final class BaritoneLink {
             baritone.getCommandManager().execute("pause");
             pausedForHuman = true;
         }
+    }
+
+    /** Hands need the body for a moment (crafting, eating): hold Baritone still. Returns true if it was paused. */
+    boolean pauseForHands() {
+        if (baritone == null || pausedForHuman || !isActive()) return false;
+        baritone.getCommandManager().execute("pause");
+        return true;
+    }
+
+    void resumeAfterHands() {
+        if (baritone != null && !pausedForHuman && Afk.MODE.isAgent()) baritone.getCommandManager().execute("resume");
     }
 
     boolean isActive() {
@@ -202,8 +235,10 @@ final class BaritoneLink {
         o.addProperty("pathing", pathing.isPathing());
         Goal goal = pathing.getGoal();
         if (goal != null) o.addProperty("goal", clip(goal.toString(), 120));
-        pathing.estimatedTicksToGoal().ifPresent(t -> o.addProperty("etaSeconds", Math.round(t / 20.0)));
-        o.addProperty("legitMine", true);
+        pathing.estimatedTicksToGoal().ifPresent(t -> {
+            if (t < 20 * 3600) o.addProperty("etaSeconds", Math.round(t / 20.0));
+        });
+        o.addProperty("legitMine", legit);
         return o;
     }
 
