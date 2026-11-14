@@ -4,6 +4,12 @@
 
 > Pre-release (0.2.0). Built and tested on macOS with Minecraft 26.3. Expect rough edges.
 
+![Herobrine at home after finishing a task: commentary below, plan and memory on the right](docs/images/herobrine-at-home.png)
+
+| In a tight shaft the camera cuts to first person | Press B for the cinematic camera while you play |
+|---|---|
+| ![First-person mining shot](docs/images/first-person-mining.png) | ![Cinematic camera with a new-biome title card](docs/images/cinematic-title-card.png) |
+
 ## What it does
 
 - **Tab takeover.** Tap Tab: Herobrine has your body and your mouse stops steering it. Tap again: it switches off at once and Baritone pauses mid-task, so it resumes where it left off next time. Holding Tab still shows the player list.
