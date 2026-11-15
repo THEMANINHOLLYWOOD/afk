@@ -144,6 +144,18 @@ final class ShaderProfiles {
         }
     }
 
+    /** Writes a pack's settings file without reloading (used to repair settings after a crash). */
+    static void writeSaved(String packName, Properties options) {
+        try {
+            if (!irisPresent()) return;
+            Pack pack = new Pack();
+            pack.name = packName;
+            write(pack, options);
+        } catch (Throwable t) {
+            Afk.LOG.warn("Could not put back the shader pack's settings", t);
+        }
+    }
+
     /** Iris keeps a pack's changed options in "<pack>.txt" beside it and reads that file on every reload. */
     private static void write(Pack pack, Properties options) throws IOException {
         Path saved = IrisCalls.packsDir().resolve(pack.name + ".txt");

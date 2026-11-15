@@ -1,8 +1,14 @@
 package dev.afk;
 
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Properties;
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.CloudStatus;
 import net.minecraft.client.Minecraft;
 
@@ -140,8 +146,10 @@ final class PerformanceGovernor {
 
     private void apply(Minecraft mc, int newLevel) {
         Rung to = ladder.get(newLevel);
+        if (level == 0 && newLevel > 0) savePending(); // remember your settings in case the game never gets to put them back
         boolean reload = set(mc, to, true);
         level = newLevel;
+        if (newLevel == 0) clearPending();
         graceSeconds = reload ? 12 : 6;
         Afk.HUD.toast("PERFORMANCE", to.label + "  ·  " + Math.round(avg) + " fps");
         Afk.LOG.info("Performance step {} of {}: {} ({} fps)", newLevel, ladder.size() - 1, to.label, Math.round(avg));
@@ -180,7 +188,70 @@ final class PerformanceGovernor {
             if (pack != null) ShaderProfiles.restore(pack, inWorld);
             if (!ShaderProfiles.shadersOn() || pack == null) ShaderProfiles.setShaders(true);
         }
+        boolean wasLowered = level > 0;
         applied = top;
         level = 0;
+        if (wasLowered) {
+            mc.options.save(); // your own values are what ends up in options.txt
+            clearPending();
+        }
+    }
+
+    // ------------------------------------------------------------------ crash safety
+
+    /** Your settings from before the ladder lowered anything; deleted again once they are back. */
+    private static Path pendingFile() {
+        return FabricLoader.getInstance().getGameDir().resolve("afk").resolve("perf-restore.json");
+    }
+
+    private void savePending() {
+        try {
+            JsonObject o = new JsonObject();
+            o.addProperty("render", baseRender);
+            o.addProperty("entity", baseEntity);
+            o.addProperty("clouds", baseClouds.name());
+            o.addProperty("shaders", baseShaders);
+            if (pack != null) {
+                o.addProperty("pack", pack.name);
+                JsonObject options = new JsonObject();
+                for (String key : pack.original.stringPropertyNames()) options.addProperty(key, pack.original.getProperty(key));
+                o.add("packOptions", options);
+            }
+            Files.createDirectories(pendingFile().getParent());
+            Files.writeString(pendingFile(), o.toString());
+        } catch (Exception e) {
+            Afk.LOG.warn("Could not note your graphics settings", e);
+        }
+    }
+
+    private static void clearPending() {
+        try {
+            Files.deleteIfExists(pendingFile());
+        } catch (Exception ignored) {
+        }
+    }
+
+    /** If the game closed while settings were lowered (a crash or a force quit), puts yours back. */
+    static void recoverAfterCrash(Minecraft mc) {
+        Path file = pendingFile();
+        if (!Files.exists(file)) return;
+        try {
+            JsonObject o = JsonParser.parseString(Files.readString(file)).getAsJsonObject();
+            mc.options.renderDistance().set(o.get("render").getAsInt());
+            mc.options.entityDistanceScaling().set(o.get("entity").getAsDouble());
+            mc.options.cloudStatus().set(CloudStatus.valueOf(o.get("clouds").getAsString()));
+            mc.options.save();
+            if (o.has("pack")) {
+                Properties options = new Properties();
+                for (var e : o.getAsJsonObject("packOptions").entrySet()) options.setProperty(e.getKey(), e.getValue().getAsString());
+                ShaderProfiles.writeSaved(o.get("pack").getAsString(), options);
+            }
+            if (o.get("shaders").getAsBoolean()) ShaderProfiles.setShaders(true); // also reloads the pack with your settings
+            Afk.LOG.info("Put back your graphics settings from before the game last closed unexpectedly");
+        } catch (Exception e) {
+            Afk.LOG.warn("Could not put back your graphics settings", e);
+        } finally {
+            clearPending();
+        }
     }
 }

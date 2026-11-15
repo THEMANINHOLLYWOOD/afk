@@ -83,6 +83,15 @@ final class DevHooks {
                 net.minecraft.client.KeyMapping.set(key, down);
                 if (down) net.minecraft.client.KeyMapping.click(key);
             }
+            case "tap" -> { // press a key and release it "ms" later from inside the game, like a real keyboard
+                int code = "b".equals(body.get("key").getAsString()) ? InputConstants.KEY_B : InputConstants.KEY_TAB;
+                InputConstants.Key key = InputConstants.Type.KEYBOARD.getOrCreate(code);
+                long ms = body.has("ms") ? body.get("ms").getAsLong() : 100;
+                net.minecraft.client.KeyMapping.set(key, true);
+                net.minecraft.client.KeyMapping.click(key);
+                java.util.concurrent.CompletableFuture.delayedExecutor(ms, java.util.concurrent.TimeUnit.MILLISECONDS)
+                        .execute(() -> mc.execute(() -> net.minecraft.client.KeyMapping.set(key, false)));
+            }
             case "inventory" -> mc.gui.setScreen(new InventoryScreen(p));
             case "close" -> p.closeContainer();
             case "box" -> {

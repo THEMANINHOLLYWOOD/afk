@@ -2,7 +2,7 @@
 
 **Tap Tab and Herobrine takes over.** AFK is a Minecraft modpack (Java 26.3, Fabric) where an AI agent, signed in with *your own* Claude or ChatGPT account, takes control of your character and plays for you, filmed by a cinematic camera. Tap Tab again and you're back.
 
-> Pre-release (0.2.0). Built and tested on macOS with Minecraft 26.3. Expect rough edges.
+> Pre-release (0.2.1). Built and tested on macOS with Minecraft 26.3. Expect rough edges.
 
 ![Herobrine at home after finishing a task: commentary below, plan and memory on the right](docs/images/herobrine-at-home.png)
 
@@ -72,7 +72,7 @@ Everything runs on your computer. The mod talks to Herobrine's brain over a loca
 
 ```bash
 JDK_HOME=/path/to/jdk-25 mod/build.sh                               # mod/build/afk-<version>.jar
-python3 pack/build-pack.py mod/build/afk-0.2.0.jar <owner>/<repo>   # dist/AFK-<version>.mrpack
+python3 pack/build-pack.py mod/build/afk-0.2.1.jar <owner>/<repo>   # dist/AFK-<version>.mrpack
 dev/test-client.sh /tmp/afk-test "New World"                        # offline test copy of the game
 ```
 

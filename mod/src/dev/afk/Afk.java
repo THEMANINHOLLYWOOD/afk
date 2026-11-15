@@ -96,6 +96,7 @@ public final class Afk implements ClientModInitializer {
         Commands.register();
 
         ClientLifecycleEvents.CLIENT_STARTED.register(mc -> {
+            PerformanceGovernor.recoverAfterCrash(mc); // settings left lowered by a crash or force quit go back first
             ACTIVITY.load();
             DISCOVERIES.load();
             VisualDefaults.applyOnce(mc);

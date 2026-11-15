@@ -28,7 +28,11 @@ public final class AfkHooks {
         return Afk.CAMERA.hidesBlockOutline();
     }
 
+    /** Frames rendered so far (the camera updates once per frame). */
+    static volatile long frames;
+
     public static void recordPose(Camera camera) {
+        frames++;
         CinematicCamera.recordPose(camera);
     }
 

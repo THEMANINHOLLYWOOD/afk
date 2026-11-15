@@ -12,11 +12,13 @@ import net.minecraft.client.Minecraft;
  *   B          cinematic camera while you play (GTA style), on or off.
  */
 final class AgentMode {
-    private static final int TAP_TICKS = 6; // 0.3 s: longer than this is a "hold" for the player list
+    private static final long TAP_MS = 300; // held longer than this is a "hold" for the player list...
+    private static final long TAP_FRAMES = 2; // ...unless the game drew at most two frames meanwhile (lag)
 
     private KeyMapping takeoverKey;
     private KeyMapping cinematicKey;
-    private int heldTicks = -1;
+    private long downAtNs = -1;
+    private long downAtFrame;
 
     private volatile boolean agent;
     private volatile long taskId;
@@ -46,7 +48,7 @@ final class AgentMode {
     void tick(Minecraft mc) {
         if (mc.player == null) {
             if (agent) setAgent(false, "left the world");
-            heldTicks = -1;
+            downAtNs = -1;
             return;
         }
         while (cinematicKey.consumeClick()) {
@@ -55,25 +57,38 @@ final class AgentMode {
         int clicks = 0;
         while (takeoverKey.consumeClick()) clicks++;
         if (mc.gui.screen() != null) {
-            heldTicks = -1;
+            downAtNs = -1;
             return;
         }
         boolean down = takeoverKey.isDown();
         if (down) {
-            heldTicks = heldTicks < 0 ? 0 : heldTicks + 1;
-        } else if (heldTicks >= 0) {
-            if (heldTicks <= TAP_TICKS) toggle();
-            heldTicks = -1;
+            if (downAtNs < 0) {
+                downAtNs = System.nanoTime();
+                downAtFrame = AfkHooks.frames;
+            }
+        } else if (downAtNs >= 0) {
+            if (tapSoFar()) toggle();
+            downAtNs = -1;
         } else if (clicks > 0) {
-            toggle(); // a tap shorter than one tick
+            toggle(); // pressed and released between two ticks
         }
+    }
+
+    /**
+     * Still short enough to be a tap. Timed by the clock and by rendered frames, not by game ticks:
+     * when the game lags it runs a burst of catch-up ticks, which made a quick tap look like a hold.
+     */
+    private boolean tapSoFar() {
+        long ms = (System.nanoTime() - downAtNs) / 1_000_000L;
+        long frames = AfkHooks.frames - downAtFrame;
+        return ms <= TAP_MS || frames <= TAP_FRAMES;
     }
 
     /** True while Tab is down but not yet held long enough to count as "show the player list". */
     boolean suppressPlayerList() {
         Minecraft mc = Minecraft.getInstance();
         boolean sameKey = KeyMappingHelper.getBoundKeyOf(takeoverKey).equals(KeyMappingHelper.getBoundKeyOf(mc.options.keyPlayerList));
-        return sameKey && heldTicks >= 0 && heldTicks <= TAP_TICKS;
+        return sameKey && downAtNs >= 0 && tapSoFar();
     }
 
     void toggle() {
