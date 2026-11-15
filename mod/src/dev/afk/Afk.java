@@ -97,6 +97,7 @@ public final class Afk implements ClientModInitializer {
 
         ClientLifecycleEvents.CLIENT_STARTED.register(mc -> {
             PerformanceGovernor.recoverAfterCrash(mc); // settings left lowered by a crash or force quit go back first
+            CaveLight.applyOnce(); // shaders ignore the Brightness slider, so turn up the pack's own cave light
             ACTIVITY.load();
             DISCOVERIES.load();
             VisualDefaults.applyOnce(mc);

@@ -144,6 +144,39 @@ final class ShaderProfiles {
         }
     }
 
+    /** The shader pack chosen in Iris (even while shaders are switched off), or null. */
+    static String configuredPackName() {
+        try {
+            return irisPresent() ? IrisCalls.configuredPack() : null;
+        } catch (Throwable t) {
+            return null;
+        }
+    }
+
+    /**
+     * Sets one option in a pack's settings file. With onlyIfUnset, an option you already changed
+     * yourself is left alone. Returns true if the file changed (reload shaders to see it).
+     */
+    static boolean setOption(String packName, String key, String value, boolean onlyIfUnset) {
+        try {
+            Path saved = IrisCalls.packsDir().resolve(packName + ".txt");
+            Properties options = new Properties();
+            if (Files.exists(saved)) {
+                try (InputStream in = Files.newInputStream(saved)) {
+                    options.load(in);
+                }
+            }
+            if (onlyIfUnset && options.containsKey(key)) return false;
+            if (value.equals(options.getProperty(key))) return false;
+            options.setProperty(key, value);
+            writeSaved(packName, options);
+            return true;
+        } catch (Throwable t) {
+            Afk.LOG.warn("Could not change shader option {}", key, t);
+            return false;
+        }
+    }
+
     /** Writes a pack's settings file without reloading (used to repair settings after a crash). */
     static void writeSaved(String packName, Properties options) {
         try {
@@ -265,6 +298,10 @@ final class ShaderProfiles {
 
         static String packName() {
             return net.irisshaders.iris.Iris.getCurrentPackName();
+        }
+
+        static String configuredPack() {
+            return net.irisshaders.iris.Iris.getIrisConfig().getShaderPackName().orElse(null);
         }
 
         static Path packsDir() {

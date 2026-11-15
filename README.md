@@ -2,7 +2,7 @@
 
 **Tap Tab and Herobrine takes over.** AFK is a Minecraft modpack (Java 26.3, Fabric) where an AI agent, signed in with *your own* Claude or ChatGPT account, takes control of your character and plays for you, filmed by a cinematic camera. Tap Tab again and you're back.
 
-> Pre-release (0.2.1). Built and tested on macOS with Minecraft 26.3. Expect rough edges.
+> Pre-release (0.2.2). Built and tested on macOS with Minecraft 26.3. Expect rough edges.
 
 ![Herobrine at home after finishing a task: commentary below, plan and memory on the right](docs/images/herobrine-at-home.png)
 
@@ -27,8 +27,11 @@
 - **It remembers what you were doing.** While you play, AFK keeps a short local diary: blocks broken and placed, containers opened, where you travelled, your chat and commands, and what you gained or used. When you hand over, Herobrine reads it and continues your work.
 - **Crafting and chests by typing.** Every container screen gets an "Ask Herobrine" box. In your inventory or at a crafting table: `3 pickaxes`, `16 torches`. In a chest: `sort`, `sort potions`.
 - **It learns.** Herobrine keeps a playbook of *lessons* (written after every death or failure) and *skills* (ways of doing things it worked out or you taught it), and reads it at the start of every session. It doesn't retrain a model; it gets better by following its own growing notes.
-- **Keeps 24 FPS or better.** When frames drop, AFK walks down a ladder one step at a time: first your shader pack's own lower quality profiles (for example Complementary's High, Medium, Low, Potato), then shorter render distance, fewer far entities and no clouds, and only then shaders off. With headroom it climbs back. It never goes above your own settings and puts them back when you leave. `/afk perf off` disables it.
+- **Keeps 24 FPS or better.** When frames drop, AFK walks down a ladder one step at a time: first your shader pack's own lower quality profiles (for example Complementary's High, Medium, Low, Potato), then shorter render distance, fewer far entities and no clouds, and only then shaders off. With headroom it climbs back. It never goes above your own settings and puts them back when you leave, even after a crash. `/afk perf off` disables it.
 - **Looks good by default.** Complementary Unbound shaders with Iris and Sodium, Faithful 32x, Fresh Animations, Fast Better Grass, Low On Fire and Default Dark Mode, plus max brightness and no Darkness-effect pulsing.
+- **You can see in caves.** Shader packs mostly ignore the Brightness slider, so caves go nearly black. AFK turns the pack's own cave lighting to its maximum, once (Complementary, BSL and Photon). Change it back in the shader's settings and AFK leaves it alone.
+
+  ![The same unlit stone wall with the shader's default cave lighting and with AFK's](docs/images/cave-light.png)
 
 ## Install
 
@@ -72,7 +75,7 @@ Everything runs on your computer. The mod talks to Herobrine's brain over a loca
 
 ```bash
 JDK_HOME=/path/to/jdk-25 mod/build.sh                               # mod/build/afk-<version>.jar
-python3 pack/build-pack.py mod/build/afk-0.2.1.jar <owner>/<repo>   # dist/AFK-<version>.mrpack
+python3 pack/build-pack.py mod/build/afk-0.2.2.jar <owner>/<repo>   # dist/AFK-<version>.mrpack
 dev/test-client.sh /tmp/afk-test "New World"                        # offline test copy of the game
 ```
 

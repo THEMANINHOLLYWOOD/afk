@@ -92,6 +92,12 @@ final class DevHooks {
                 java.util.concurrent.CompletableFuture.delayedExecutor(ms, java.util.concurrent.TimeUnit.MILLISECONDS)
                         .execute(() -> mc.execute(() -> net.minecraft.client.KeyMapping.set(key, false)));
             }
+            case "shaderopt" -> { // set one option of the chosen shader pack and reload (for tuning)
+                String pack = ShaderProfiles.configuredPackName();
+                if (pack == null) throw new IllegalStateException("no shader pack chosen");
+                ShaderProfiles.setOption(pack, body.get("key").getAsString(), body.get("value").getAsString(), false);
+                ShaderProfiles.setShaders(true);
+            }
             case "inventory" -> mc.gui.setScreen(new InventoryScreen(p));
             case "close" -> p.closeContainer();
             case "box" -> {
