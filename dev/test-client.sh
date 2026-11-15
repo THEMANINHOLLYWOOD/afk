@@ -5,6 +5,7 @@
 #
 #   dev/test-client.sh <test dir> [world name] [port]
 #
+# World name "-" opens the title screen instead (for creating a new world).
 # The bridge listens on <port> (default 25600) with test hooks enabled (POST /dev).
 set -euo pipefail
 TEST="$1"; WORLD="${2:-New World}"; PORT="${3:-25600}"; USERNAME="AfkTester"
@@ -30,7 +31,7 @@ if [ ! -f "$TEST/options.txt" ]; then
   grep -vE '^(fullscreen|pauseOnLostFocus|soundCategory_master|overrideWidth|overrideHeight|resourcePacks|incompatibleResourcePacks):' "$MC/options.txt" > "$TEST/options.txt" || true
   printf 'fullscreen:false\npauseOnLostFocus:false\nsoundCategory_master:0.0\n' >> "$TEST/options.txt"
 fi
-if [ ! -d "$TEST/saves/$WORLD" ]; then
+if [ "$WORLD" != "-" ] && [ ! -d "$TEST/saves/$WORLD" ]; then
   cp -R "$MC/saves/$WORLD" "$TEST/saves/$WORLD"
   rm -f "$TEST/saves/$WORLD/session.lock"
   python3 - "$TEST/saves/$WORLD/level.dat" <<'PY'
@@ -45,6 +46,9 @@ gzip.open(p, "wb").write(raw)
 print("cheats enabled in the test copy")
 PY
 fi
+QUICKPLAY=()
+if [ "$WORLD" != "-" ]; then
+QUICKPLAY=(--quickPlaySingleplayer "$WORLD")
 # 26.3 stores the world owner's UUID; an offline player gets a UUID made from its name. Make the
 # test player the owner of the copy (so cheats work) and give it the real owner's inventory and position.
 python3 - "$TEST/saves/$WORLD" "$USERNAME" <<'PY'
@@ -67,6 +71,7 @@ if i >= 0:
             shutil.copy(src, dst)
         print("test player now owns the world copy")
 PY
+fi
 # The same offline UUID for the session, so the player's save, recipe book and advancements stay together.
 UUID="$(python3 -c "import hashlib,uuid,sys; print(uuid.UUID(bytes=hashlib.md5(('OfflinePlayer:'+sys.argv[1]).encode()).digest(), version=3))" "$USERNAME")"
 CP="$(MC="$MC" V="$MCV" F="$FABRIC" python3 - <<'PY'
@@ -105,4 +110,4 @@ exec "$JAVA" -XstartOnFirstThread -XX:StackShadowPages=32 --enable-native-access
   -cp "$CP" net.fabricmc.loader.impl.launch.knot.KnotClient \
   --username "$USERNAME" --version "$FABRIC" --gameDir "$TEST" --assetsDir "$MC/assets" --assetIndex "$ASSET_INDEX" \
   --uuid "$UUID" --accessToken 0 --clientId 0 --xuid 0 --versionType release \
-  --width 1280 --height 720 --quickPlaySingleplayer "$WORLD"
+  --width 1280 --height 720 ${QUICKPLAY[@]+"${QUICKPLAY[@]}"}

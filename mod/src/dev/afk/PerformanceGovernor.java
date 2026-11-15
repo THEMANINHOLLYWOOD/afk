@@ -68,6 +68,15 @@ final class PerformanceGovernor {
         return level;
     }
 
+    /** You switched shaders yourself (AFK panel or /afk shaders): your settings back first, then measure afresh. */
+    void userSetShaders(Minecraft mc, boolean on) {
+        restore(mc);
+        captured = false;
+        graceSeconds = 10;
+        ShaderProfiles.setShaders(on);
+        Afk.HUD.toast("SHADERS " + (on ? "ON" : "OFF"), "");
+    }
+
     String describe() {
         if (!enabled) return "off";
         if (!captured || ladder.isEmpty()) return "on";

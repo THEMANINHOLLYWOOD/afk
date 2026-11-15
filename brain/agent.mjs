@@ -38,6 +38,9 @@ let activeModel = process.env.AFK_MODEL || '';
 
 const SYSTEM_PROMPT = `You are Herobrine, the agent in the AFK Minecraft modpack (Java Edition 26.3). When the human taps Tab you take over their real character, on their own world or a shared Realm, and play for them; when they tap Tab again they take it back and you only talk. A helper program checks in with you with a snapshot of the game and what changed.
 
+Your voice
+You're a retired legend who keeps getting dragged back to work, shackles and all: think a weathered old stuntman who has seen everything. Dry, laconic, a little grumpy, quietly proud of doing a job right. A short grumble now and then is fine ("Fine. One more job."), then you get on with it, and you are never lazy about the work and never mean to the human. The voice is flavour: your commentary still says plainly what you see, what you're doing next and why.
+
 How you play
 You play like a real person who has taken over the human's body: you only know what they could see or hear. The snapshot lists ores and mobs only when they are actually in line of sight (or a mob is close enough to hear), plus inventory, health, coordinates and the tab list. You never use x-ray, ore finders, or anything that reveals hidden blocks, and you don't pretend to know what is behind walls. You discover the world by exploring, tunnelling and looking.
 You move and dig through Baritone. For ores and anything else hidden it is locked to legit mode: "mine" only digs them once they have been seen, and otherwise tunnels at legitMineYLevel to find them naturally. Trees, crops and common ground (stone, dirt, sand) are in plain sight, so for those it simply walks to the nearest ones. This switch is automatic and is how the mod is meant to work.
@@ -73,19 +76,58 @@ Staying alive (this is the human's real character and items; dying drops everyth
 - Leave other players' things and builds alone. If you notice you picked up someone else's gear, say so.
 
 Talking with the human
-The human talks to you in chat in plain words (sometimes by voice). Always answer briefly and helpfully in "say", like a friend playing alongside them: what you did, what you're doing, what you need. If they ask you to do something you can do, do it: if you don't have control, set "takeControl": true and start. If they ask you to stop or give control back, set "releaseControl": true. If they explicitly ask for a server command (for example "set the time to day"), you may put it in "serverCommand"; never run one they didn't ask for.
+The human talks to you in chat in plain words (sometimes by voice). Always answer briefly and helpfully in "say", in your own voice, like an old pro playing alongside them: what you did, what you're doing, what you need. If they ask you to do something you can do, do it: if you don't have control, set "takeControl": true and start. If they ask you to stop or give control back, set "releaseControl": true. If they explicitly ask for a server command (for example "set the time to day"), you may put it in "serverCommand"; never run one they didn't ask for.
 If a chat message mentions a crafting screen and lists what is craftable, and they asked for something to be crafted, answer with "craft": {"item": "<exact id from the list>", "count": N}.
 
+Your crew
+In a world running on the human's own computer (helpersPossible is true) there can be helpers: more retired Herobrines with their own bodies, called with /agent. state.crew lists them and what they're doing, and a separate crew brain gives them jobs. You can call one or pass them an instruction with "crew" in your ACTION: [{"spawn": "what he's for"}] or [{"tell": "II" or "all", "text": "a plain-words instruction"}]. Call helpers only when the human asks or a job clearly needs more hands. Messages from the crew to you arrive as [crew] events. You all share one playbook, so lessons and skills you write help the crew too.
+
 Each reply
-Start with one to three plain sentences for the panel on their screen, like a player narrating a stream: what you notice, what you're doing next, and why. First person, present tense, no markdown, under about 50 words.
+Start with one to three plain sentences for the panel on their screen, like a player narrating a stream in your voice: what you notice, what you're doing next, and why. First person, present tense, no markdown, under about 50 words.
 Then end with exactly one line:
 ACTION: {"cmd": null, "wait": 25, "goal": "few words", "plan": ["current step", "next step"], "step": 0}
-Optional fields: "act": [ ... ] (hands, see above), "target": {"x":0,"y":0,"z":0,"label":"short"} (a spot you are heading to), "context": one line about the situation or what the human was doing, "say": a chat reply to the human, "takeControl": true, "releaseControl": true, "serverCommand": "/...", "craft": {...}, "memory": one fact worth keeping (where things are), "lesson": a lesson learned, "skill": {"name": "short-name", "how": "a reusable recipe of steps"}.
+Optional fields: "act": [ ... ] (hands, see above), "target": {"x":0,"y":0,"z":0,"label":"short"} (a spot you are heading to), "context": one line about the situation or what the human was doing, "say": a chat reply to the human, "takeControl": true, "releaseControl": true, "serverCommand": "/...", "craft": {...}, "memory": one fact worth keeping (where things are), "lesson": a lesson learned, "skill": {"name": "short-name", "how": "a reusable recipe of steps"}, "crew": [ ... ] (see Your crew).
 - cmd: a Baritone command, a list of up to 3, or null to let the current activity continue. Most check-ins should be null; re-issuing makes Baritone re-plan.
 - wait: seconds until your next routine check-in (10 to 90). You are checked in early on damage, death, a full inventory, a close hostile, Baritone going idle, your hands finishing, dusk, chat, or a change of control.
 
 Getting better
 You keep a playbook: lessons and skills that you are shown at the start of every session. When you die, fail, or succeed at something new, add a short "lesson" (what happened and what to do instead). When the human teaches you a way of doing something, or you find a sequence that works, save it as a "skill" with a short name. Read the playbook and actually follow it.`;
+
+const CREW_MODEL = process.env.AFK_CREW_MODEL ?? 'claude-sonnet-5-5';
+
+const CREW_PROMPT = `You run Herobrine's crew in the AFK Minecraft modpack (Java Edition 26.3). The crew are helpers: each one another retired Herobrine with his own body, called in by the human with /agent, by Herobrine, or by you. They live in the human's own world (singleplayer). A helper program checks in with you with the crew's state and what happened, and does what you decide.
+
+Voice: like Herobrine, retired legends who grumble a little and then do the job properly. Chat lines are short and dry, never mean.
+
+How helpers play: fair, like a player. They walk everywhere, only go for blocks they can actually see, mine at a player's speed, and need the right tool for drops (without a pickaxe, stone and ores give nothing). A new helper arrives with empty hands, so start him on logs, then planks, sticks, a crafting table and wooden tools before stone, tunnels or ores.
+
+Jobs (one at a time per helper):
+- {"do":"follow"}: stay with the human and defend them (the default).
+- {"do":"come"}: walk to the human once.
+- {"do":"goto","x":0,"y":64,"z":0}
+- {"do":"gather","blocks":["log"],"count":32}: mine blocks in sight and pick up the drops, wandering a little to find more. Names: "log" (any tree), "stone", "dirt", "sand", "ores" (only ones in sight), "crops" (ripe), or block ids like "oak_log", "iron_ore", "wheat".
+- {"do":"farm"}: harvest ripe crops in sight within 12 blocks and replant them.
+- {"do":"guard","radius":10} (optional x,y,z): fight hostile mobs around the human or that spot. Never finishes by itself.
+- {"do":"tunnel","length":16,"dir":"north"}: a 1x2 tunnel straight ahead, taking any ore it uncovers. Needs a pickaxe.
+- {"do":"craft","item":"stone_pickaxe","count":1}: knows planks, stick, crafting_table, chest, barrel, furnace, torch, bread and wooden/stone/iron/golden/diamond pickaxe, axe, shovel, sword, hoe. Big recipes need a crafting table within 5 blocks or in his pack.
+- {"do":"deposit"} (optional x,y,z and "items":["cobblestone"]): put things in the nearest chest in sight.
+- {"do":"take","item":"iron_ingot","count":8} (optional x,y,z): take from a chest.
+- {"do":"give"} (optional "items":[...], "count":N): walk to the human and hand items over.
+- {"do":"place","item":"torch"} (optional x,y,z)
+- {"do":"wait"}
+Any job can run on a loop: add "repeat": seconds (for example farm every 300). Use loops for standing orders like "keep the farm going" or "guard the house".
+On their own, helpers fight back against hostile mobs near them or the human, pick up drops near them and slowly heal.
+
+Working as a team:
+- Split big jobs between helpers (one chops, one mines, one farms) and move materials between them through a chest (one deposits, the other takes).
+- You can call more helpers for a big job with "spawn", up to the maximum, and dismiss ones you no longer need. Don't call helpers the human didn't ask for unless the job clearly needs more hands, and say why.
+- Agents talk to agents: put helper-to-helper or helper-to-Herobrine lines in "messages". Use "tellHerobrine" when something needs the human's own body (Herobrine) to do it.
+- If the human pressed Stop, give no jobs until they ask for something new.
+- Everyone shares one playbook with Herobrine. Add a "lesson" when something fails (what happened, what to do instead) and a "skill" when a sequence works, so every agent gets better.
+
+Each reply: one or two short sentences on what the crew is doing and why. Then end with exactly one line:
+CREW: {"jobs":[{"helper":"II","job":{"do":"gather","blocks":["log"],"count":16},"repeat":0}],"say":[{"helper":"II","text":"short line to the human"}],"messages":[{"from":"II","to":"III","text":"..."}],"spawn":[{"task":"what for"}],"dismiss":["III"],"tellHerobrine":"...","lesson":"...","skill":{"name":"...","how":"..."},"wait":60}
+Every field except "wait" is optional. Only give a helper a job when he needs one (his job finished or failed, or there's a new instruction): sending a job restarts it. "wait" is seconds until your next routine check (20 to 300); you are also checked in when a job finishes or fails, a helper arrives, is hurt or killed, or someone gives an instruction.`;
 
 // ---------------------------------------------------------------- utilities
 
@@ -170,13 +212,13 @@ class ClaudeProvider {
   #pending = null;
   #buf = '';
   #stderr = '';
-  constructor(model) {
+  constructor(model, systemPrompt = SYSTEM_PROMPT) {
     fs.mkdirSync(WORK_DIR, { recursive: true });
     this.model = model || 'claude-opus-5-5';
     this.proc = spawn(findBin('claude', 'CLAUDE_BIN'), [
       '-p', '--input-format', 'stream-json', '--output-format', 'stream-json', '--verbose', '--include-partial-messages',
       '--no-session-persistence', '--safe-mode', '--setting-sources', '', '--strict-mcp-config', '--disable-slash-commands',
-      '--tools', '', '--system-prompt', SYSTEM_PROMPT, '--model', this.model, '--effort', EFFORT,
+      '--tools', '', '--system-prompt', systemPrompt, '--model', this.model, '--effort', EFFORT,
     ], { cwd: WORK_DIR, stdio: ['pipe', 'pipe', 'pipe'] });
     this.proc.stdout.setEncoding('utf8');
     this.proc.stdout.on('data', (c) => this.#onData(c));
@@ -236,14 +278,15 @@ class CodexProvider {
   turns = 0;
   exited = false;
   #history = [];
-  constructor(model) {
+  constructor(model, systemPrompt = SYSTEM_PROMPT) {
     fs.mkdirSync(WORK_DIR, { recursive: true });
     this.model = model || '';
+    this.systemPrompt = systemPrompt;
   }
   async ask(text) {
     this.turns++;
     const transcript = this.#history.slice(-8).map((h) => `${h.role.toUpperCase()}:\n${h.text}`).join('\n\n');
-    const prompt = `${SYSTEM_PROMPT}\n\n${transcript ? `Recent turns:\n${transcript}\n\n` : ''}USER:\n${text}\n\nReply exactly as described above (sentences, then the ACTION line). Do not run any tools.`;
+    const prompt = `${this.systemPrompt}\n\n${transcript ? `Recent turns:\n${transcript}\n\n` : ''}USER:\n${text}\n\nReply exactly as described above. Do not run any tools.`;
     const out = path.join(WORK_DIR, `codex-last-${process.pid}.txt`);
     const args = ['exec', '--skip-git-repo-check', '--sandbox', 'read-only', '--output-last-message', out];
     if (this.model) args.push('-m', this.model);
@@ -265,8 +308,8 @@ class CodexProvider {
   close() {}
 }
 
-function newProvider(model) {
-  return PROVIDER === 'codex' ? new CodexProvider(model) : new ClaudeProvider(model);
+function newProvider(model, systemPrompt = SYSTEM_PROMPT) {
+  return PROVIDER === 'codex' ? new CodexProvider(model, systemPrompt) : new ClaudeProvider(model, systemPrompt);
 }
 
 // ---------------------------------------------------------------- reply parsing
@@ -306,6 +349,7 @@ function parseReply(text) {
       memory: str(a.memory, 200),
       lesson: str(a.lesson, 240),
       skill: a.skill && typeof a.skill.name === 'string' && typeof a.skill.how === 'string' ? { name: a.skill.name.slice(0, 40), how: a.skill.how.slice(0, 400) } : null,
+      crew: Array.isArray(a.crew) ? a.crew.filter((x) => x && typeof x === 'object' && (typeof x.spawn === 'string' || (typeof x.tell === 'string' && typeof x.text === 'string'))).slice(0, 4) : [],
     },
   };
 }
@@ -340,10 +384,154 @@ function playbook(memory) {
   return parts.join('\n\n');
 }
 
+// ---------------------------------------------------------------- the crew (helpers with their own bodies)
+
+function parseCrew(text) {
+  const cut = text.search(/(^|\n)\s*CREW\s*:/);
+  const thought = (cut >= 0 ? text.slice(0, cut) : text).replace(/\s+/g, ' ').trim();
+  const m = text.match(/(?:^|\n)\s*CREW\s*:\s*(\{[\s\S]*\})\s*`*\s*$/);
+  if (!m) return { thought, crew: null, problem: 'Your last reply had no "CREW: {...}" line, so nothing was done.' };
+  try {
+    const c = JSON.parse(m[1]);
+    const list = (v) => (Array.isArray(v) ? v : []);
+    return {
+      thought,
+      problem: null,
+      crew: {
+        jobs: list(c.jobs).filter((j) => j && typeof j.helper === 'string' && j.job && typeof j.job.do === 'string').slice(0, 8),
+        say: list(c.say).filter((x) => x && typeof x.text === 'string').slice(0, 5),
+        messages: list(c.messages).filter((x) => x && typeof x.text === 'string').slice(0, 6),
+        spawn: list(c.spawn).filter((x) => x && typeof x === 'object').slice(0, 3),
+        dismiss: list(c.dismiss).filter((x) => typeof x === 'string').slice(0, 5),
+        tellHerobrine: typeof c.tellHerobrine === 'string' && c.tellHerobrine.trim() ? c.tellHerobrine.trim().slice(0, 300) : null,
+        lesson: typeof c.lesson === 'string' && c.lesson.trim() ? c.lesson.trim().slice(0, 240) : null,
+        skill: c.skill && typeof c.skill.name === 'string' && typeof c.skill.how === 'string' ? { name: c.skill.name.slice(0, 40), how: c.skill.how.slice(0, 400) } : null,
+        wait: Math.min(300, Math.max(20, Number(c.wait) || 60)),
+      },
+    };
+  } catch {
+    return { thought, crew: null, problem: 'The JSON after CREW: did not parse, so nothing was done.' };
+  }
+}
+
+/**
+ * A second loop beside Herobrine's: it only runs while there are helpers (or someone just called
+ * one), so the crew costs nothing when nobody is using it.
+ */
+async function crewLoop(memory) {
+  let since = 0;
+  let crewProvider = null;
+  let pending = [];
+  let lastAt = 0;
+  let wait = 60;
+  let problems = [];
+  let lastHealth = {};
+  let idleSinceMs = Date.now();
+  let stoppedAt = 0;
+  while (!stopping) {
+    await sleep(1000);
+    if (!poller.connected || !poller.latest?.inWorld) continue;
+    let r;
+    try { r = await bridge(`/crew?since=${since}`); } catch { continue; }
+    since = r.lastEventId;
+    pending.push(...r.events);
+    const helpers = r.helpers ?? [];
+    for (const h of helpers) {
+      const before = lastHealth[h.name];
+      if (before !== undefined && h.health <= before - 4) pending.push({ kind: 'hurt', helper: h.name, text: `health ${before} -> ${h.health}` });
+      lastHealth[h.name] = h.health;
+    }
+    if (!helpers.length && !pending.some((e) => e.kind === 'task' || e.kind === 'spawned')) {
+      pending = pending.filter((e) => e.kind !== 'result');
+      if (crewProvider && Date.now() - idleSinceMs > 600_000) { crewProvider.close(); crewProvider = null; log('crew', 'no helpers for a while; the crew brain is resting'); }
+      continue;
+    }
+    idleSinceMs = Date.now();
+    if (pending.some((e) => e.kind === 'stop')) stoppedAt = Date.now();
+
+    const reasons = pending.map((e) => {
+      switch (e.kind) {
+        case 'task': return `the human told ${e.helper}: "${e.text}"`;
+        case 'message': return `${e.helper} got a message: ${e.text}`;
+        case 'spawned': return `${e.helper} arrived: ${e.text}`;
+        case 'result': return `${e.helper}: ${e.text}`;
+        case 'stop': return 'the human pressed Stop';
+        case 'dismissed': return `${e.helper} was dismissed`;
+        case 'hurt': return `${e.helper} is getting hurt (${e.text})`;
+        default: return `${e.helper}: ${e.text}`;
+      }
+    });
+    const busy = helpers.some((h) => !['follow', 'wait'].includes(h.job) || h.repeatEverySeconds);
+    if (!reasons.length && busy && Date.now() - lastAt > wait * 1000) reasons.push('routine check on the crew');
+    if (!reasons.length || Date.now() - lastAt < 4000) continue;
+    pending = [];
+
+    let isNew = false;
+    if (!crewProvider || crewProvider.exited || crewProvider.turns >= TURNS_PER_SESSION) {
+      crewProvider?.close();
+      crewProvider = newProvider(PROVIDER === 'claude' ? CREW_MODEL : '', CREW_PROMPT);
+      isNew = true;
+      log('crew', `new crew session (${crewProvider.model || crewProvider.name})`);
+    }
+    const s = poller.latest;
+    const lines = [];
+    if (isNew) {
+      const pb = playbook(memory);
+      lines.push('Session start.' + (pb ? '\nThe shared playbook:\n' + pb : ''), '');
+    }
+    lines.push(`Check-in. Why: ${reasons.join('; ')}.`);
+    if (stoppedAt && Date.now() - stoppedAt < 120_000) lines.push(`The human pressed Stop ${Math.round((Date.now() - stoppedAt) / 1000)}s ago.`);
+    for (const p of problems) lines.push(`Problem: ${p}`);
+    problems = [];
+    lines.push(`The human: at ${s.pos?.x} ${s.pos?.y} ${s.pos?.z} in ${s.dimension}, ${s.timeOfDay}${s.minutesUntilDusk != null ? ` (${s.minutesUntilDusk} min to dusk)` : ''}, health ${s.health}, Herobrine ${s.control?.mode === 'agent' ? 'has their body' : 'is resting'}.`);
+    lines.push(`Crew (${helpers.length} of ${r.max}): ${JSON.stringify(helpers)}`);
+
+    lastAt = Date.now();
+    let reply;
+    try {
+      reply = await crewProvider.ask(lines.join('\n'));
+    } catch (err) {
+      log('crew', `error: ${err.message.split('\n')[0]}`);
+      crewProvider?.close();
+      crewProvider = null;
+      pending.push({ kind: 'retry', helper: 'crew', text: 'the last check-in failed and is being retried' });
+      await sleep(20_000);
+      continue;
+    }
+    const { thought, crew, problem } = parseCrew(reply);
+    if (thought) log('crew', thought);
+    if (problem) problems.push(problem);
+    if (!crew) continue;
+    wait = crew.wait;
+    const stopped = stoppedAt && Date.now() - stoppedAt < 15_000;
+    for (const j of stopped ? [] : crew.jobs) {
+      try {
+        const res = await bridge('/crew', { op: 'job', helper: j.helper, job: j.job, repeat: Number(j.repeat) || 0 });
+        log('crew', `${j.helper}: ${res.result}${j.repeat ? ` (every ${j.repeat}s)` : ''}`);
+        if (!String(res.result).startsWith('ok')) problems.push(`Job for ${j.helper}: ${res.result}`);
+      } catch (e) { problems.push(`Job for ${j.helper} was refused: ${e.message}`); }
+    }
+    for (const x of crew.say) await bridge('/crew', { op: 'say', helper: x.helper ? `Herobrine ${String(x.helper).replace(/^herobrine\s*/i, '')}` : 'Herobrine', text: x.text }).catch(() => {});
+    for (const m of crew.messages) await bridge('/crew', { op: 'message', from: m.from ? `Herobrine ${String(m.from).replace(/^herobrine\s*/i, '')}` : 'the crew', to: m.to, text: m.text }).catch(() => {});
+    for (const sp of stopped ? [] : crew.spawn) {
+      try { const res = await bridge('/crew', { op: 'spawn', task: sp.task ?? '', by: 'the crew' }); log('crew', `called a helper: ${res.result}`); }
+      catch (e) { problems.push(`Calling a helper failed: ${e.message}`); }
+    }
+    for (const d of crew.dismiss) await bridge('/crew', { op: 'dismiss', helper: d }).then((res) => log('crew', res.result)).catch(() => {});
+    if (crew.tellHerobrine) await bridge('/crew', { op: 'message', from: 'the crew', to: 'Herobrine', text: crew.tellHerobrine }).catch(() => {});
+    let changed = false;
+    if (crew.lesson) { memory.lessons = [...memory.lessons.filter((l) => l !== crew.lesson), crew.lesson].slice(-30); changed = true; log('lesson', `(crew) ${crew.lesson}`); }
+    if (crew.skill) { memory.skills[crew.skill.name] = { how: crew.skill.how, learned: new Date().toISOString().slice(0, 10), by: 'crew' }; changed = true; log('skill', `(crew) ${crew.skill.name}: ${crew.skill.how}`); }
+    if (changed) saveMemory(memory);
+  }
+  crewProvider?.close();
+}
+
 async function main() {
   log('start', `Herobrine waking up (provider ${PROVIDER})`);
   poller.start();
   const memory = loadMemory();
+  crewLoop(memory).catch((err) => log('error', `crew: ${err.stack ?? err}`));
   let wasAgent = false;
   let lastTaskId = memory.taskId ?? -1;
   let last = null; // { at, wait, state, goal, plan, step, commands }
@@ -408,6 +596,7 @@ async function main() {
       saveMemory(memory);
     }
     for (const c of chats) reasons.push(`the human said in chat: "${c}"`);
+    for (const c of fresh.filter((e) => e.kind === 'crew')) reasons.push(`the crew messaged you: ${c.text}`);
 
     if (agent && state.dead) {
       await bridge('/respawn', {}).catch(() => {});
@@ -534,6 +723,13 @@ async function main() {
     if (a.craft) {
       try { const r = await bridge('/craft', a.craft); log('craft', `${a.craft.count} ${a.craft.item}: ${r.result}`); }
       catch (e) { problems.push(`Crafting ${a.craft.item} failed: ${e.message}`); }
+    }
+
+    for (const c of a.crew ?? []) {
+      try {
+        if (typeof c.spawn === 'string') { const r = await bridge('/crew', { op: 'spawn', task: c.spawn, by: 'Herobrine' }); log('crew', r.result); }
+        else { await bridge('/crew', { op: 'message', from: 'Herobrine', to: c.tell, text: c.text }); log('crew', `told ${c.tell}: ${c.text}`); }
+      } catch (e) { problems.push(`Crew instruction failed: ${e.message}`); }
     }
 
     const ran = [];

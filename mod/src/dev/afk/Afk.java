@@ -51,6 +51,7 @@ public final class Afk implements ClientModInitializer {
 
     @Override
     public void onInitializeClient() {
+        Agents.register(); // the helper entity type, before the registries freeze
         MODE.registerKeys();
         HudElementRegistry.addLast(id("hud"), HUD);
         // Hold Tab still shows the player list; a quick tap toggles Herobrine without flashing it.

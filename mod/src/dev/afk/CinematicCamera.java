@@ -158,6 +158,14 @@ final class CinematicCamera {
         return use != Use.OFF;
     }
 
+    boolean isManual() {
+        return use == Use.MANUAL && !exiting;
+    }
+
+    boolean momentsEnabled() {
+        return momentsEnabled;
+    }
+
     void setMomentsEnabled(boolean on) {
         momentsEnabled = on;
         if (!on) pendingMoments.clear();

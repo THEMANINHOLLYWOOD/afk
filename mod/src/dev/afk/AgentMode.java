@@ -31,7 +31,14 @@ final class AgentMode {
                 new KeyMapping("key.afk.takeover", InputConstants.Type.KEYBOARD, InputConstants.KEY_TAB, category));
         cinematicKey = KeyMappingHelper.registerKeyMapping(
                 new KeyMapping("key.afk.cinematic", InputConstants.Type.KEYBOARD, InputConstants.KEY_B, category));
+        panelKey = KeyMappingHelper.registerKeyMapping(
+                new KeyMapping("key.afk.panel", InputConstants.Type.KEYBOARD, InputConstants.KEY_H, category));
+        stopKey = KeyMappingHelper.registerKeyMapping(
+                new KeyMapping("key.afk.stop", InputConstants.Type.KEYBOARD, InputConstants.KEY_BACKSPACE, category));
     }
+
+    private KeyMapping panelKey;
+    private KeyMapping stopKey;
 
     boolean isAgent() {
         return agent;
@@ -53,6 +60,12 @@ final class AgentMode {
         }
         while (cinematicKey.consumeClick()) {
             if (mc.gui.screen() == null && !agent) Afk.CAMERA.toggleManual(mc);
+        }
+        while (panelKey.consumeClick()) {
+            if (mc.gui.screen() == null) mc.gui.setScreen(new ControlPanel());
+        }
+        while (stopKey.consumeClick()) {
+            if (mc.gui.screen() == null) Agents.stopEverything("you pressed Stop");
         }
         int clicks = 0;
         while (takeoverKey.consumeClick()) clicks++;
@@ -106,17 +119,53 @@ final class AgentMode {
             Afk.ACTIVITY.handover(mc);
             Afk.BARITONE.onAgentStart();
             Afk.CAMERA.startAgent(mc);
+            String line = pick(BACK_TO_WORK);
             Afk.HUD.toast("HEROBRINE HAS CONTROL", "");
-            Afk.EVENTS.add("mode", "the human handed you control (" + why + ")");
+            Afk.HUD.quip(line);
+            clank(mc, 0.75f);
+            Afk.EVENTS.add("mode", "the human handed you control (" + why + "); you grumbled \"" + line + "\"");
         } else {
             Afk.HANDS.abortAll("the human took control");
             Afk.BARITONE.onAgentStop();
             Afk.CAMERA.stopAgent();
             Afk.ACTIVITY.beginPlayerSession(mc);
-            Afk.HUD.toast("YOU HAVE CONTROL", "");
+            Afk.HUD.toast("YOU HAVE CONTROL", pick(RETIRING));
+            clank(mc, 1.25f);
             Afk.EVENTS.add("mode", "the human took control back (" + why + ")");
         }
         Afk.ACTIVITY.save();
+    }
+
+    // Herobrine is retired and keeps getting dragged back to work.
+    private static final String[] BACK_TO_WORK = {
+        "I was retired. Fine. One more job.",
+        "Thirty years of stunts and you still need me. Alright.",
+        "Back in the chains. What are we doing?",
+        "I don't do this anymore. Hand me the pickaxe.",
+        "Every time I sit down. Every single time.",
+        "Okay, I'm up. Nobody touch my coffee.",
+        "You know what, sure. Retirement was boring anyway.",
+    };
+    private static final String[] RETIRING = {
+        "Back to the porch.",
+        "Wake me when it's important.",
+        "Your body, your problem. Don't fall in lava.",
+        "Retired again. Feels good.",
+        "I'll be around. I'm always around.",
+    };
+    private static final java.util.Random RANDOM = new java.util.Random();
+
+    private static String pick(String[] lines) {
+        return lines[RANDOM.nextInt(lines.length)];
+    }
+
+    /** The shackles: a chain rattle only you hear. */
+    private static void clank(Minecraft mc, float pitch) {
+        try {
+            mc.getSoundManager().play(net.minecraft.client.resources.sounds.SimpleSoundInstance.forUI(
+                    net.minecraft.sounds.SoundEvents.CHAIN_BREAK, pitch, 0.6f));
+        } catch (Throwable ignored) {
+        }
     }
 
     /** A plain-words task from /do, chat or the crafting box. Hands control to Herobrine if asked. */

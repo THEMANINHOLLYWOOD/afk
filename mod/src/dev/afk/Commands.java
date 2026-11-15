@@ -14,6 +14,8 @@ import net.minecraft.client.Minecraft;
  *   /do             show the current task          /do stop   take control back
  *   /afk            help    /afk status    /afk login [claude|codex]    /afk provider <claude|codex>
  *   /afk perf <on|off>     /afk moments <on|off>     /afk cinematic     /afk brain restart
+ *   /afk panel   /afk stop   /afk shaders <on|off>
+ *   /agent [task]   /agent tell <name> <task>   /agent list | stop | dismiss [name|all]
  */
 final class Commands {
     private Commands() {
@@ -42,11 +44,33 @@ final class Commands {
                     return 1;
                 })));
 
+        d.register(ClientCommands.literal("agent")
+                .executes(c -> {
+                    Afk.CHAT.showHerobrine(Agents.spawn(null, "the human"));
+                    return 1;
+                })
+                .then(ClientCommands.argument("what", StringArgumentType.greedyString()).executes(c -> {
+                    agent(StringArgumentType.getString(c, "what").strip());
+                    return 1;
+                })));
+
         d.register(ClientCommands.literal("afk")
                 .executes(c -> {
                     help();
                     return 1;
                 })
+                .then(ClientCommands.literal("panel").executes(c -> {
+                    Minecraft mc = Minecraft.getInstance();
+                    mc.execute(() -> mc.gui.setScreen(new ControlPanel()));
+                    return 1;
+                }))
+                .then(ClientCommands.literal("stop").executes(c -> {
+                    Agents.stopEverything("you typed /afk stop");
+                    return 1;
+                }))
+                .then(ClientCommands.literal("shaders")
+                        .then(ClientCommands.literal("on").executes(c -> shaders(true)))
+                        .then(ClientCommands.literal("off").executes(c -> shaders(false))))
                 .then(ClientCommands.literal("status").executes(c -> {
                     JsonObject cfg = Afk.BRAIN.config();
                     boolean awake = System.currentTimeMillis() - BridgeServer.lastBrainContactMs() < 15_000;
@@ -83,6 +107,45 @@ final class Commands {
                 }))));
     }
 
+    /**
+     * /agent                       call a helper (he follows you)
+     * /agent <task>                call a helper for a task
+     * /agent tell <name> <task>    give a helper (or "all") something to do
+     * /agent list | stop | dismiss [name|all]
+     */
+    private static void agent(String what) {
+        String lower = what.toLowerCase(java.util.Locale.ROOT);
+        if (lower.equals("stop") || lower.equals("cancel") || lower.equals("stop all")) {
+            Agents.stopEverything("you typed /agent stop");
+            Afk.CHAT.showHerobrine("Everyone stopped. Helpers are waiting for you.");
+        } else if (lower.equals("list") || lower.equals("status")) {
+            Afk.CHAT.showHerobrine(Agents.list());
+        } else if (lower.equals("dismiss") || lower.startsWith("dismiss ")) {
+            String who = what.length() > 7 ? what.substring(7).strip() : "all";
+            Afk.CHAT.showHerobrine(Agents.dismiss(who.isEmpty() ? "all" : who));
+        } else if (lower.startsWith("tell ")) {
+            String rest = what.substring(5).strip();
+            int space = rest.indexOf(' ');
+            if (space < 0) {
+                Afk.CHAT.showHerobrine("Tell who what? For example: /agent tell II chop 20 logs");
+                return;
+            }
+            Afk.CHAT.showHerobrine(Agents.tell(rest.substring(0, space), rest.substring(space + 1).strip(), null));
+        } else {
+            Afk.CHAT.showHerobrine(Agents.spawn(what, "the human"));
+        }
+    }
+
+    private static int shaders(boolean on) {
+        Minecraft mc = Minecraft.getInstance();
+        if (!ShaderProfiles.irisPresent()) {
+            Afk.CHAT.showHerobrine("Shaders need Iris, which isn't installed.");
+            return 1;
+        }
+        mc.execute(() -> Afk.PERFORMANCE.userSetShaders(mc, on));
+        return 1;
+    }
+
     private static int login(String provider) {
         provider(provider);
         Afk.CHAT.showHerobrine(BrainLauncher.login(provider));
@@ -98,7 +161,7 @@ final class Commands {
         return 1;
     }
 
-    private static int moments(boolean on) {
+    static int moments(boolean on) {
         JsonObject cfg = Afk.BRAIN.config();
         cfg.addProperty("moments", on);
         Afk.BRAIN.saveConfig(cfg);
@@ -115,8 +178,9 @@ final class Commands {
     }
 
     private static void help() {
-        Afk.CHAT.showHerobrine("Tap Tab: I take over, tap again: you're back. B: cinematic camera. Talk to me: \"hb <anything>\" in chat "
-                + "(while I have control, just type; start with ! to talk to the server). /do <task>. In a crafting table or chest, use the box at the bottom. "
-                + "/afk login, /afk status, /afk perf on|off, /afk moments on|off.");
+        Afk.CHAT.showHerobrine("Tap Tab: I take over, tap again: you're back. H: the AFK panel. Delete: stop everything. B: cinematic camera. "
+                + "Talk to me: \"hb <anything>\" in chat (while I have control, just type; start with ! to talk to the server). /do <task>. "
+                + "/agent <task>: call a helper with his own body (singleplayer). In a crafting table or chest, use the box at the bottom. "
+                + "/afk login, /afk status, /afk shaders on|off, /afk perf on|off, /afk moments on|off.");
     }
 }

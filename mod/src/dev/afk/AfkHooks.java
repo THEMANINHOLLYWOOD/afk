@@ -2,6 +2,10 @@ package dev.afk;
 
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.player.AbstractClientPlayer;
+import net.minecraft.core.ClientAsset;
+import net.minecraft.world.entity.player.PlayerModelType;
+import net.minecraft.world.entity.player.PlayerSkin;
 
 /** The few entry points the mixins call into. Public so classes in dev.afk.mixin can reach them. */
 public final class AfkHooks {
@@ -26,6 +30,21 @@ public final class AfkHooks {
     /** The outline around the block under the crosshair has no place in a film shot. */
     public static boolean hideBlockOutline() {
         return Afk.CAMERA.hidesBlockOutline();
+    }
+
+    private static PlayerSkin herobrine;
+
+    /** The retired-Herobrine skin, while he drives your body. Null means "your own skin". */
+    public static PlayerSkin skinFor(AbstractClientPlayer player) {
+        Minecraft mc = Minecraft.getInstance();
+        return player == mc.player && Afk.MODE.isAgent() ? herobrineSkin() : null;
+    }
+
+    static PlayerSkin herobrineSkin() {
+        if (herobrine == null) {
+            herobrine = new PlayerSkin(new ClientAsset.ResourceTexture(Afk.id("entity/herobrine")), null, null, PlayerModelType.WIDE, true);
+        }
+        return herobrine;
     }
 
     /** Frames rendered so far (the camera updates once per frame). */

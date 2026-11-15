@@ -62,6 +62,7 @@ final class BridgeServer {
             }));
             created.createContext("/state", guard(BridgeServer::state));
             created.createContext("/activity", guard(BridgeServer::activity));
+            created.createContext("/crew", guard(BridgeServer::crew));
             created.createContext("/baritone", guard(BridgeServer::baritone));
             created.createContext("/thought", guard(BridgeServer::thought));
             created.createContext("/hud", guard(BridgeServer::hud));
@@ -149,6 +150,50 @@ final class BridgeServer {
 
     private static JsonObject activity(HttpExchange exchange, JsonObject body) {
         return Afk.ACTIVITY.since(since(exchange));
+    }
+
+    /**
+     * GET  /crew?since=<id>   the helpers and what happened to them
+     * POST /crew {"op": "spawn", "task": "...", "by": "..."}            call a helper (agents can call agents)
+     *            {"op": "job", "helper": "II", "job": {...}, "repeat": s}  give a helper a job, optionally on a loop
+     *            {"op": "say", "helper": "II", "text": "..."}             a helper talks in your chat
+     *            {"op": "message", "from": "II", "to": "III", "text": "..."}  agents talking to agents
+     *            {"op": "dismiss", "helper": "II"|"all"}   {"op": "stop"}
+     */
+    private static JsonObject crew(HttpExchange exchange, JsonObject body) throws Exception {
+        if (!"POST".equalsIgnoreCase(exchange.getRequestMethod())) return Agents.since(since(exchange));
+        String op = string(body, "op");
+        JsonObject out = ok();
+        switch (op == null ? "" : op) {
+            case "spawn" -> out.addProperty("result", Agents.spawn(string(body, "task"), string(body, "by")));
+            case "job" -> {
+                if (!body.has("job") || !body.get("job").isJsonObject()) throw new IllegalArgumentException("missing job");
+                int repeat = body.has("repeat") ? body.get("repeat").getAsInt() : 0;
+                out.addProperty("result", Agents.assign(string(body, "helper"), body.getAsJsonObject("job"), repeat));
+            }
+            case "say" -> {
+                String who = string(body, "helper");
+                String text = string(body, "text");
+                if (text == null || text.isBlank()) throw new IllegalArgumentException("missing text");
+                Minecraft.getInstance().execute(() -> Afk.CHAT.showAs(who == null ? "Herobrine" : who, text));
+            }
+            case "message" -> {
+                String from = string(body, "from");
+                String to = string(body, "to");
+                String text = string(body, "text");
+                if (text == null || text.isBlank()) throw new IllegalArgumentException("missing text");
+                Minecraft.getInstance().execute(() -> Afk.CHAT.showAs((from == null ? "Herobrine" : from) + " → " + (to == null ? "crew" : to), text));
+                if (to != null && (to.equalsIgnoreCase("herobrine") || to.equalsIgnoreCase("I"))) {
+                    Afk.EVENTS.add("crew", (from == null ? "a helper" : from) + " says: " + text);
+                } else {
+                    Agents.tell(to == null ? "all" : to, text, from == null ? "Herobrine" : from);
+                }
+            }
+            case "dismiss" -> out.addProperty("result", Agents.dismiss(string(body, "helper")));
+            case "stop" -> Agents.stopEverything("the crew brain stopped everyone");
+            default -> throw new IllegalArgumentException("unknown op: " + op);
+        }
+        return out;
     }
 
     private static JsonObject baritone(HttpExchange exchange, JsonObject body) throws Exception {

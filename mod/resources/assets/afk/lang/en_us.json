@@ -1,5 +1,8 @@
 {
   "key.category.afk.main": "AFK",
   "key.afk.takeover": "Herobrine takes over (tap)",
-  "key.afk.cinematic": "Cinematic camera"
+  "key.afk.cinematic": "Cinematic camera",
+  "key.afk.panel": "AFK panel",
+  "key.afk.stop": "Stop everything",
+  "entity.afk.herobrine": "Herobrine"
 }

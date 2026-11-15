@@ -82,6 +82,13 @@ final class AfkHud implements HudElement {
         thought = "error".equals(kind) ? "(" + t + ")" : t;
     }
 
+    private long quips;
+
+    /** A line of Herobrine's that doesn't come from the brain (shown until the brain's next thought). */
+    void quip(String text) {
+        entry(-(++quips), "says", text);
+    }
+
     void setContext(JsonObject o) {
         if (o.has("plan") && o.get("plan").isJsonArray()) plan = strings(o.getAsJsonArray("plan"), 5, 80);
         if (o.has("step") && o.get("step").isJsonPrimitive()) step = o.get("step").getAsInt();
@@ -140,6 +147,7 @@ final class AfkHud implements HudElement {
             }
         }
         if (!agent && k < 0.5f) playerTag(g, font, now);
+        crewDraw(g, font, k < 0.5f ? 16 : h * 0.1f * k + 6);
         toastDraw(g, font, w, h, k, now);
         cardDraw(g, font, w, h, now);
     }
@@ -278,7 +286,19 @@ final class AfkHud implements HudElement {
         dot(g, 8, 8, 1, argb(RED, pulse));
         float x = 13;
         x += spaced(g, font, "AFK", x, 6, 0.55f, argb(EMBER, a), 1.2f);
-        spaced(g, font, "  ·  TAB HEROBRINE", x, 6, 0.55f, argb(DIM, a), 1.2f);
+        spaced(g, font, "  ·  TAB HEROBRINE  ·  H PANEL", x, 6, 0.55f, argb(DIM, a), 1.2f);
+    }
+
+    /** One quiet line per helper under the tag: "II  gathering log 12/32". */
+    private void crewDraw(GuiGraphicsExtractor g, Font font, float y) {
+        List<String> lines = Agents.hudLines();
+        if (lines.isEmpty()) return;
+        spaced(g, font, "CREW", 13, y, 0.5f, argb(EMBER, 150), 1.2f);
+        float ly = y + 6;
+        for (String line : lines) {
+            text(g, font, line.length() > 48 ? line.substring(0, 47) + "…" : line, 13, ly, 0.55f, argb(SOFT, 170));
+            ly += 6.5f;
+        }
     }
 
     private void toastDraw(GuiGraphicsExtractor g, Font font, int w, int h, float k, long now) {

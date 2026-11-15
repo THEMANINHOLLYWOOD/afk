@@ -64,9 +64,7 @@ final class DevHooks {
             case "moment" -> Afk.CAMERA.moment(body.get("label").getAsString(), body.has("title") ? body.get("title").getAsString() : "", 5.0);
             case "chat" -> {
                 String text = body.get("text").getAsString();
-                String forHerobrine = ChatAgent.addressedText(text);
-                if (forHerobrine == null) return "would go to the server: " + text;
-                Afk.CHAT.route(forHerobrine, "chat");
+                if (!Afk.CHAT.handleOutgoing(text)) return "would go to the server: " + text;
             }
             case "do" -> {
                 Afk.MODE.setTask(body.get("text").getAsString(), true);

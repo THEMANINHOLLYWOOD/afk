@@ -302,6 +302,9 @@ final class StateSampler {
             o.add("playersOnline", online);
         }
         o.add("baritone", Afk.BARITONE.status());
+        JsonArray crew = Agents.snapshot();
+        if (!crew.isEmpty()) o.add("crew", crew.deepCopy());
+        o.addProperty("helpersPossible", Agents.available());
         return o;
     }
 

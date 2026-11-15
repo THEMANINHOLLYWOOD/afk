@@ -2,7 +2,7 @@
 
 **Tap Tab and Herobrine takes over.** AFK is a Minecraft modpack (Java 26.3, Fabric) where an AI agent, signed in with *your own* Claude or ChatGPT account, takes control of your character and plays for you, filmed by a cinematic camera. Tap Tab again and you're back.
 
-> Pre-release (0.2.2). Built and tested on macOS with Minecraft 26.3. Expect rough edges.
+> Pre-release (0.3.0). Built and tested on macOS with Minecraft 26.3. Expect rough edges.
 
 ![Herobrine at home after finishing a task: commentary below, plan and memory on the right](docs/images/herobrine-at-home.png)
 
@@ -13,6 +13,16 @@
 ## What it does
 
 - **Tab takeover.** Tap Tab: Herobrine has your body and your mouse stops steering it. Tap again: it switches off at once and Baritone pauses mid-task, so it resumes where it left off next time. Holding Tab still shows the player list.
+- **Herobrine is retired, and you keep dragging him back.** While he has your body you wear his skin (only you see it): grey mutton chops, white eyes, aviators on his forehead, an open Hawaiian shirt in Steve's cyan, a big belt buckle, and iron shackles with broken chain on his wrists and ankles. The chains rattle when he takes over, and he talks like a weathered old stuntman: "I was retired. Fine. One more job."
+
+  | He takes over: "Fine. One more job." | His skin |
+  |---|---|
+  | ![Herobrine in his skin under the cinematic camera, grumbling in the commentary bar](docs/images/herobrine-takes-over.png) | ![Herobrine's skin: front, back and the texture](docs/images/herobrine-skin-preview.png) |
+- **The crew: `/agent`.** In a world running on your computer, `/agent` calls a helper: another Herobrine with his own body, who appears next to you in a puff of smoke. `/agent chop 32 logs` calls one for a job. Helpers play fair like Herobrine (they walk, only go for blocks they can see, mine at a player's speed and need the right tool), and they gather, farm and replant, tunnel, guard you, craft the basics, use chests and hand you what they collected. Any job can run on a loop ("keep the farm going"). A crew brain runs the team: it splits big jobs, the helpers message each other and Herobrine in your chat, it can call in more helpers when a job needs them (up to five), and everyone shares one playbook, so a lesson one of them learns helps all of them. Talk to them with `@II get wood`, `@crew come here`, or `/agent tell II <task>`.
+
+  ![Herobrine II at work, with the quiet crew line in the top-left corner](docs/images/crew-helper.png)
+- **Stop button.** **Delete** (or the red button in the panel, `/agent stop`, `/afk stop`) stops everything at once: Herobrine gives your body back, and every helper drops his job and his loops.
+- **The AFK panel.** Press **H** for one small column of switches: Herobrine, Stop everything, call or dismiss helpers, cinematic camera, shaders on or off, the 24 fps ladder and discovery moments.
 - **Plays legitimately.** Herobrine only knows what a player in your body could see or hear: ores and mobs in line of sight, usable blocks it can see (chests, beds, tables), your inventory, health and coordinates, and the tab list. For ores and anything else hidden, Baritone is locked to legit mining: it only digs what has been seen and otherwise tunnels to find more. Trees, crops and common ground are in plain sight, so it simply walks to those. Commands that search hidden blocks are blocked.
 - **Real hands.** It does what a player does with the mouse and inventory, the way a player does it (in reach, in view, looking at it):
   - crafts with the recipe book, placing a crafting table when a recipe needs one and picking it back up afterwards
@@ -54,6 +64,12 @@ Herobrine's brain (`afk/brain/agent.mjs` in the game folder) starts automaticall
 | Tap **Tab** | Herobrine takes over / gives you back control |
 | Hold **Tab** | Player list (as usual) |
 | **B** | Cinematic camera while you play |
+| **H** | The AFK panel |
+| **Delete** | Stop everything (Herobrine and every helper) |
+| `/agent`, `/agent <task>` | Call a helper (singleplayer or Open to LAN) |
+| `/agent tell <name> <task>`, `@II <task>`, `@crew <task>` | Give helpers something to do |
+| `/agent list`, `/agent dismiss [name\|all]` | See the crew / send helpers away (they drop what they carry) |
+| `/afk shaders on\|off` | Shaders on or off |
 | `hb <anything>` in chat | Talk to Herobrine |
 | `/do <task>`, `/do stop` | Give a task / take control back |
 | `/afk status`, `/afk login` | Status, sign-in |
@@ -69,13 +85,14 @@ Everything runs on your computer. The mod talks to Herobrine's brain over a loca
 - It can only craft recipes your recipe book has unlocked, like clicking them yourself.
 - Baritone's route planner knows the layout of terrain the game has loaded (that's how pathfinding works). Finding ores is legit, but routes aren't limited to what's been seen.
 - On a shared server or Realm, Herobrine plays as you, so follow the server's rules about automation.
+- Helpers only exist in worlds running on your computer (singleplayer, or Open to LAN for friends who also have AFK): a server or Realm decides what lives in its world. They know a small recipe book (the survival basics), and they can't build structures, trade, enchant or brew. If you later open the world without AFK, the helpers are gone.
 - A custom AFK shader pack is planned; research notes are in [docs/shader-research.md](docs/shader-research.md).
 
 ## Build from source
 
 ```bash
 JDK_HOME=/path/to/jdk-25 mod/build.sh                               # mod/build/afk-<version>.jar
-python3 pack/build-pack.py mod/build/afk-0.2.2.jar <owner>/<repo>   # dist/AFK-<version>.mrpack
+python3 pack/build-pack.py mod/build/afk-0.3.0.jar <owner>/<repo>   # dist/AFK-<version>.mrpack
 dev/test-client.sh /tmp/afk-test "New World"                        # offline test copy of the game
 ```
 
