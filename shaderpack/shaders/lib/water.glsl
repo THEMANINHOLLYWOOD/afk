@@ -1,5 +1,8 @@
 /* MakeUp - water.glsl
 Water reflection and refraction related functions.
+
+Modified for the AFK shader pack: adaptive SSR step count, sky fallback for missed rays,
+night tint.
 */
 
 float linearizeDepth(float depth) {
@@ -26,13 +29,15 @@ vec3 fastRaymarch(vec3 direction, vec3 hitPoint, inout float infinite, float dit
     bool hiddens = false;
 
     // Ray marching
-    for (int i = 0; i < RAYMARCH_STEPS; i++) {
+    int ssrSteps = RAYMARCH_STEPS;  // AFK: adaptive step count; the reach stays at MakeUp's 2^10
+    float ssrStride = 10.0 / float(ssrSteps);
+    for (int i = 0; i < ssrSteps; i++) {
         if (searchFlag) {
             pathIncrement *= 0.5;
             currentMarchPoint += pathIncrement * sign(depthDifference);
         } else {
             oldMarchPoint = currentMarchPoint;
-            currentMarchPoint = hitPoint + ((direction * exp2(i + dither)) - direction);
+            currentMarchPoint = hitPoint + ((direction * exp2((float(i) + dither) * ssrStride)) - direction);
             pathIncrement = currentMarchPoint - oldMarchPoint;
         }
 

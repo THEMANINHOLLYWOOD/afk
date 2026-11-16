@@ -2,6 +2,7 @@
 Config variables
 
 Javier Garduño - GNU Lesser General Public License v3.0
+Modified for the AFK shader pack: High-tier defaults, adaptive step counts (see afk.glsl).
 */
 
 // Useful entities
@@ -78,7 +79,7 @@ Javier Garduño - GNU Lesser General Public License v3.0
 #define BLOOM_SAMPLES 3.0 // [2.0 3.0 4.0 5.0 6.0 7.0 8.0 9.0 10.0] Bloom sample pairs.
 #define CHROMA_ABER 0 // [0 1] Enable chroma aberration.
 #define CHROMA_ABER_STRENGTH 0.04 // [0.04 0.05 0.06] Chroma aberration strength.
-#define VOL_LIGHT 1 // [0 1 2] Depth based: Turn on depth based godrays, faster and can work better than volumetric light for very short shadow distances. Volumetric: It activates the volumetric light, more accurate and faster, but it needs the shadows enabled to work.
+#define VOL_LIGHT 2 // [0 1 2] Depth based: Turn on depth based godrays, faster and can work better than volumetric light for very short shadow distances. Volumetric: It activates the volumetric light, more accurate and faster, but it needs the shadows enabled to work.
 // #define VANILLA_WATER // Establishes the appearance of water as vanilla.
 #define WATER_COLOR_SOURCE 0 // [0 1] Select the water color source. It does not work properly in 1.12. In that case the default value is recommended.
 #define WATER_TURBULENCE 0.9 // [7.0 1.75 0.9 0.5] Set the water waves strength.
@@ -147,8 +148,8 @@ Javier Garduño - GNU Lesser General Public License v3.0
     #define NETHER_SIGHT far
 #endif
 
-// Reflection parameters
-#define RAYMARCH_STEPS 10
+// Reflection parameters (AFK: adaptive, see afk.glsl)
+#define RAYMARCH_STEPS AFK_SSR_STEPS
 
 // Cloud parameters
 #if CLOUD_VOL_STYLE == 1
@@ -188,9 +189,9 @@ Javier Garduño - GNU Lesser General Public License v3.0
     #endif
 #endif
 
-// Godrays
-#define GODRAY_STEPS 6
-#define CHEAP_GODRAY_SAMPLES 4
+// Godrays (AFK: adaptive, see afk.glsl)
+#define GODRAY_STEPS AFK_VL_STEPS
+#define CHEAP_GODRAY_SAMPLES AFK_GODRAY_STEPS
 
 // Color blindness
 // #define COLOR_BLINDNESS  // Enable color blindness correction
@@ -200,7 +201,7 @@ Javier Garduño - GNU Lesser General Public License v3.0
 const float sunPathRotation = -25.0; // [-40.0 -35.0 -30.0 -25.0 -20.0 -15.0 -10.0 -5.0 0.0 5.0 10.0 15.0 20.0 25.0 30.0 35.0 40.0]
 
 #define SHADOW_DISTANCE_SLIDER 1 // [0 1 2]
-#define SHADOW_QTY_SLIDER 2 // [1 2 3]
+#define SHADOW_QTY_SLIDER 3 // [1 2 3]
 #define SHADOW_LOCK 0 // [0 16 32 64 128 256]
 
 #define SHADOW_CASTING // Enable or disable shadows. Configure quality in advanced options.
@@ -329,3 +330,6 @@ const float centerDepthHalflife = 0.66;
 #if MC_VERSION >= 11400
     #define SELECTIVE_TAA_V2 // Applies TAA selectively to the environment and entities. Eliminates artifacts and ghosting associated with entities when TAA is enabled.
 #endif
+
+// AFK: master tier, Mac-safe path, adaptive budgets and AFK options.
+#include "/lib/afk.glsl"

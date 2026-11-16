@@ -138,10 +138,10 @@ void main() {
 
             #ifdef THE_END
                 #ifdef END_CLOUDS
-                    blockColor.rgb = get_end_cloud(eyeDirection, blockColor.rgb, bright, dither, cameraPosition, CLOUD_STEPS_AVG);
+                    blockColor.rgb = get_end_cloud(eyeDirection, blockColor.rgb, bright, dither, cameraPosition, AFK_CLOUD_STEPS);
                 #endif
             #else
-                blockColor.rgb = get_cloud(eyeDirection, blockColor.rgb, bright, dither, cameraPosition, CLOUD_STEPS_AVG, umbral, cloudColor, darkCloudColor);
+                blockColor.rgb = get_cloud(eyeDirection, blockColor.rgb, bright, dither, cameraPosition, AFK_CLOUD_STEPS, umbral, cloudColor, darkCloudColor);
             #endif
         }
 

@@ -46,11 +46,17 @@ uniform ivec2 eyeBrightnessSmooth;
     uniform vec3 shadowLightPosition;
     uniform mat4 shadowModelView;
     uniform mat4 shadowProjection;
-    uniform sampler2DShadow shadowtex1;
-
-    #if defined COLORED_SHADOW
-        uniform sampler2DShadow shadowtex0;
-        uniform sampler2D shadowcolor0;
+    #ifdef AFK_VL_PASS
+        // AFK: volumetric light comes from the dynamic-resolution pass (deferred1)
+        uniform sampler2D colortex8;
+        uniform float pixelSizeX;
+        uniform float pixelSizeY;
+    #else
+        uniform sampler2DShadow shadowtex1;
+        #if defined COLORED_SHADOW
+            uniform sampler2DShadow shadowtex0;
+            uniform sampler2D shadowcolor0;
+        #endif
     #endif
 #endif
 
@@ -90,7 +96,9 @@ varying float exposure;
 
 #if VOL_LIGHT == 2 && defined SHADOW_CASTING && !defined NETHER
     #include "/lib/dither.glsl"
-    #include "/lib/volumetric_light.glsl"
+    #ifndef AFK_VL_PASS
+        #include "/lib/volumetric_light.glsl"
+    #endif
 #endif
 
 // MAIN FUNCTION ------------------
@@ -179,10 +187,22 @@ void main() {
     #endif
 
     #if VOL_LIGHT == 2 && defined SHADOW_CASTING && !defined NETHER
-        #if defined COLORED_SHADOW
-            vec3 volumetricLight = get_volumetric_color_light(dither, screen_distance, modeli_times_projectioni);
+        #ifdef AFK_VL_PASS
+            // AFK: upsample the dynamic-resolution result, clamped to the rendered corner
+            float vlScale = AFK_VL_SCALE;
+            vec2 vlUv = min(texcoord * vlScale, vec2(vlScale) - vec2(pixelSizeX, pixelSizeY));
+            vec3 vlSample = texture2DLod(colortex8, vlUv, 0.0).rgb;
+            #if defined COLORED_SHADOW
+                vec3 volumetricLight = vlSample;
+            #else
+                float volumetricLight = vlSample.r;
+            #endif
         #else
-            float volumetricLight = get_volumetric_light(dither, screen_distance, modeli_times_projectioni);
+            #if defined COLORED_SHADOW
+                vec3 volumetricLight = get_volumetric_color_light(texcoord, dither, screen_distance, modeli_times_projectioni);
+            #else
+                float volumetricLight = get_volumetric_light(texcoord, dither, screen_distance, modeli_times_projectioni);
+            #endif
         #endif
 
         // Volumetric intensity adjustments

@@ -6,7 +6,8 @@ Based on old Capt Tatsu's ambient occlusion functions.
 float dbao(float dither) {
     float ambientOcclusion = 0.0;
 
-    float stepsInverse = 1.0 / AOSTEPS;
+    int aoSteps = AFK_AO_STEPS;  // AFK: adaptive (MakeUp's AOSTEPS is the maximum)
+    float stepsInverse = 1.0 / float(aoSteps);
     vec2 offset;
     float n;
     float ditherSample;
@@ -23,8 +24,8 @@ float dbao(float dither) {
     vec2 scaleFactor = scale * stepsInverse;
     float checkDepth;
 
-    for (int i = 0; i < AOSTEPS; i++) {
-        ditherSample = (i + dither);
+    for (int i = 0; i < aoSteps; i++) {
+        ditherSample = (float(i) + dither);
         n = fract(ditherSample * 1.6180339887) * 3.141592653589793;
         offset = vec2(cos(n), sin(n)) * ditherSample * scaleFactor;
 
@@ -40,7 +41,7 @@ float dbao(float dither) {
 
         ambientOcclusion += clamp(angle + dist, 0.0, 1.0);
     }
-    ambientOcclusion /= AOSTEPS;
+    ambientOcclusion *= stepsInverse;
 
     return sqrt((ambientOcclusion * AO_STRENGTH) + (1.0 - AO_STRENGTH));
 }

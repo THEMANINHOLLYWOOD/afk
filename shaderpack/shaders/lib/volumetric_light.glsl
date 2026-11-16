@@ -1,5 +1,8 @@
 /* MakeUp - volumetric_clouds.glsl
 Volumetric light - MakeUp implementation
+
+Modified for the AFK shader pack: adaptive step count (same 64-block reach, fewer or more
+samples along it) and an explicit screen position, so it can run at dynamic resolution.
 */
 
 #if VOL_LIGHT == 2
@@ -18,7 +21,7 @@ Volumetric light - MakeUp implementation
         return shadowPos * 0.5 + 0.5;
     }
 
-    float get_volumetric_light(float dither, float visibleDistance, mat4 modeli_times_projectioni) {
+    float get_volumetric_light(vec2 uv, float dither, float visibleDistance, mat4 modeli_times_projectioni) {
         float light = 0.0;
 
         float currentDistance;
@@ -26,9 +29,11 @@ Volumetric light - MakeUp implementation
         vec4 pos;
         vec3 shadowPos;
 
-        for (int i = 0; i < GODRAY_STEPS; i++) {
+        int vlSteps = GODRAY_STEPS;
+        float vlStride = 6.0 / float(vlSteps);
+        for (int i = 0; i < vlSteps; i++) {
             // Exponentialy spaced shadow samples
-            currentDistance = exp2(i + dither) - 0.6;
+            currentDistance = exp2((float(i) + dither) * vlStride) - 0.6;
             if (currentDistance > visibleDistance) {
                 break;
             }
@@ -36,7 +41,7 @@ Volumetric light - MakeUp implementation
             // Distance to depth
             currentDistance = (far * (currentDistance - near)) / (currentDistance * (far - near));
 
-            viewPos = vec3(texcoord, currentDistance);
+            viewPos = vec3(uv, currentDistance);
 
             // Clip to world
             pos = modeli_times_projectioni * (vec4(viewPos, 1.0) * 2.0 - 1.0);
@@ -46,14 +51,14 @@ Volumetric light - MakeUp implementation
             light += shadow2D(shadowtex1, shadowPos).r;
         }
 
-        light /= GODRAY_STEPS;
+        light /= float(vlSteps);
 
         return light * light;
     }
 
     #if defined COLORED_SHADOW
 
-        vec3 get_volumetric_color_light(float dither, float visibleDistance, mat4 modeli_times_projectioni) {
+        vec3 get_volumetric_color_light(vec2 uv, float dither, float visibleDistance, mat4 modeli_times_projectioni) {
             float light = 0.0;
 
             float currentDistance;
@@ -67,9 +72,11 @@ Volumetric light - MakeUp implementation
 
             float alpha_complement;
 
-            for (int i = 0; i < GODRAY_STEPS; i++) {
+            int vlSteps = GODRAY_STEPS;
+        float vlStride = 6.0 / float(vlSteps);
+        for (int i = 0; i < vlSteps; i++) {
                 // Exponentialy spaced shadow samples
-                currentDistance = exp2(i + dither) - 0.6;
+                currentDistance = exp2((float(i) + dither) * vlStride) - 0.6;
                 if (currentDistance > visibleDistance) {
                     break;
                 }
@@ -77,7 +84,7 @@ Volumetric light - MakeUp implementation
                 // Distance to depth
                 currentDistance = (far * (currentDistance - near)) / (currentDistance * (far - near));
 
-                viewPos = vec3(texcoord, currentDistance);
+                viewPos = vec3(uv, currentDistance);
 
                 // Clip to world
                 pos = modeli_times_projectioni * (vec4(viewPos, 1.0) * 2.0 - 1.0);
@@ -87,7 +94,7 @@ Volumetric light - MakeUp implementation
                 light += shadow2D(shadowtex0, shadowPos).r;
             }
 
-            light /= GODRAY_STEPS;
+            light /= float(vlSteps);
 
             return vec3(light);
         }
@@ -105,13 +112,14 @@ Volumetric light - MakeUp implementation
 
         float depth;
 
-        for (int i = 0; i < CHEAP_GODRAY_SAMPLES; i++) {
+        int godraySamples = CHEAP_GODRAY_SAMPLES;
+        for (int i = 0; i < godraySamples; i++) {
             depth = texture2D(depthtex1, dither2d).x;
             dither2d += ray_step;
             light += step(comp, depth);
         }
 
-        return light / CHEAP_GODRAY_SAMPLES;
+        return light / float(godraySamples);
   }
 
 #endif
