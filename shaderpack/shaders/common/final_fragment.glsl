@@ -72,6 +72,10 @@ uniform sampler2D gaux3;
     uniform sampler2D depthtex0;
     uniform mat4 gbufferProjection;
 #endif
+
+#ifdef AFK_DEBUG_PERF
+    uniform float frameTime;
+#endif
 uniform sampler2D colortex1;
 #ifdef SELECTIVE_TAA_V2
 uniform sampler2D colortex2;
@@ -168,11 +172,16 @@ void main() {
     #endif
 
     #ifdef AFK_DEBUG_PERF
-        // AFK debug, bottom left: afkPerf (green bar) and the volumetric light resolution (blue bar)
+        // AFK debug, bottom left: afkPerf (green), volumetric light resolution (blue), frame time (orange)
         if(texcoord.x < 0.3 && texcoord.y < 0.03) {
             blockColor = (texcoord.x / 0.3 < AFK_PERF) ? vec3(0.1, 1.0, 0.2) : vec3(0.12);
         } else if(texcoord.x < 0.3 && texcoord.y < 0.06) {
             blockColor = (texcoord.x / 0.3 < AFK_VL_SCALE) ? vec3(0.2, 0.45, 1.0) : vec3(0.12);
+        } else if(texcoord.x < 0.3 && texcoord.y < 0.09) {
+            // raw frame time, full width = 100 ms; white ticks at 22 ms (45 fps) and 36 ms (28 fps)
+            float barX = texcoord.x / 0.3;
+            blockColor = (barX < frameTime * 10.0) ? vec3(1.0, 0.55, 0.1) : vec3(0.12);
+            if(abs(barX - 0.222) < 0.004 || abs(barX - 0.357) < 0.004) blockColor = vec3(1.0);
         }
     #endif
 

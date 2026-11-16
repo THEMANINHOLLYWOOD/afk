@@ -53,6 +53,8 @@ AFK has its own shader pack in [`shaderpack/`](shaderpack/), built on [MakeUp Ul
 - **Readable caves and nights:** a brightness floor, auto-exposure that opens up in the dark, a filmic tonemap, and water that stays tinted at night.
 - **Soft sun shadows that don't leak into caves, and border fog** that hides chunk edges.
 
+![AFK Shaders' five tiers from the same spot](docs/images/afk-shaders-tiers.jpg)
+
 Details, options and credits are in [shaderpack/README.md](shaderpack/README.md). The shader pack is LGPL-3.0-or-later (it is a modified MakeUp); the rest of AFK is MIT.
 
 ## Install

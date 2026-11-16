@@ -38,7 +38,7 @@ GNU Lesser General Public License v3.0 or later
 // Mac-safe path. Apple's OpenGL stops at 4.1: no compute shaders, no SSBOs, no image
 // load/store, and at most 16 samplers per fragment shader. Nothing in this pack uses the first
 // three on any platform; AFK_MAC is where per-feature clamps go if a program ever approaches the
-// sampler limit (tools/count-samplers.py in the repo checks every program).
+// sampler limit (dev/count-shader-samplers.py in the AFK repo checks every program).
 #if defined MC_OS_MAC || defined MC_GL_RENDERER_APPLE
     #define AFK_MAC
 #endif
