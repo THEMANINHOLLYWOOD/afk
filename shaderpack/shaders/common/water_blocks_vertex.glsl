@@ -22,6 +22,7 @@ uniform mat4 gbufferModelView;
 uniform mat4 gbufferModelViewInverse;
 uniform vec3 cameraPosition;
 uniform float rainStrength;
+uniform float frameTimeCounter;  // AFK: vertex waves
 uniform mat4 gbufferProjectionInverse;
 
 #ifdef DISTANT_HORIZONS

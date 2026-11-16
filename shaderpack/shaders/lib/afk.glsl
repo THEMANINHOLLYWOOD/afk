@@ -29,13 +29,8 @@ GNU Lesser General Public License v3.0 or later
 // Water
 #define AFK_WATER_NIGHT_TINT 0.50 // [0.00 0.25 0.50 0.75 1.00] Keeps water tinted and visible at night and in caves.
 
-// Debug view (development only, not in the menu)
-// #define AFK_DEBUG_DEPTH
-
-#ifdef AFK_ADAPTIVE
-#endif
-#ifdef AFK_BORDER_FOG
-#endif
+// Debug view for development: shows which depth convention the pack sees.
+// #define AFK_DEBUG_DEPTH // Debug: depth convention view
 
 // ---------------------------------------------------------------------------------------------
 // Mac-safe path. Apple's OpenGL stops at 4.1: no compute shaders, no SSBOs, no image

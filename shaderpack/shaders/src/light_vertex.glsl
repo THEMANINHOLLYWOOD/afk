@@ -98,11 +98,16 @@ float omniStrength = ((directLightStrength + 1.0) * 0.25) + 0.75;
     vec3 omniColor = mix(ZenithSkyColorRGB, directLightColor * 0.45, OMNI_TINT);
     float omniColorLuma = colorAverage(omniColor);
     // --- OPTIMIZACIÓN #3: Prevenir división por cero ---
-    float lumaRatio = AVOID_DARK_LEVEL / max(omniColorLuma, 0.0001);
+    // AFK: brightness floor. MakeUp's AVOID_DARK_LEVEL plus AFK_CAVE_LIGHT (0 = MakeUp's own level)
+    float lumaRatio = (AVOID_DARK_LEVEL + AFK_CAVE_LIGHT * 0.09) / max(omniColorLuma, 0.0001);
     vec3 omniColorMin = omniColor * lumaRatio;
     omniColor = max(omniColor, omniColorMin);
 
     omniLight = mix(omniColorMin, omniColor, visibleSky) * omniStrength;
+
+    // AFK: night floor outdoors, a cool moonlit ambient. It is a floor (max), so it never
+    // brightens dusk or day, and it scales with sky light, so it doesn't reach into caves.
+    omniLight = max(omniLight, vec3(0.55, 0.65, 0.85) * (AFK_NIGHT_LIGHT * 0.07 * visibleSky * (1.0 - dayNightMix)));
 #endif
 
 // Avoid flat illumination in caves for entities
@@ -125,7 +130,10 @@ float omniStrength = ((directLightStrength + 1.0) * 0.25) + 0.75;
             directLightStrength = mix(0.0, directLightStrength, visibleSky);
         }
     #else
-        directLightStrength = mix(0.0, directLightStrength, visibleSky);
+        // AFK: sunlight needs real sky access. MakeUp scales it by sky light; AFK also gates it,
+        // so dim sky light (deep in caves, far down tunnels) gets no sun even where the shadow map
+        // can't see (beyond shadow distance, culled chunks).
+        directLightStrength = mix(0.0, directLightStrength, visibleSky) * smoothstep(0.05, 0.5, visibleSky);
     #endif
 #endif
 

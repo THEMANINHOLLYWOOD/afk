@@ -42,6 +42,7 @@ const int gaux1Format = R11F_G11F_B10F;
 const int gaux2Format = R8;
 const int gaux3Format = R16F;
 const int gaux4Format = R11F_G11F_B10F;
+const int colortex8Format = R11F_G11F_B10F;
 
 const int shadowcolor0Format = RGBA8;
 */
@@ -55,6 +56,7 @@ const bool gaux1Clear = false;
 const bool gaux2Clear = false;
 const bool gaux3Clear = false;
 const bool gaux4Clear = false;
+const bool colortex8Clear = false;  // AFK: dynamic-resolution volumetric light
 
 /* Uniforms */
 
@@ -65,6 +67,11 @@ const bool gaux4Clear = false;
 #endif
 
 uniform sampler2D gaux3;
+
+#ifdef AFK_DEBUG_DEPTH
+    uniform sampler2D depthtex0;
+    uniform mat4 gbufferProjection;
+#endif
 uniform sampler2D colortex1;
 #ifdef SELECTIVE_TAA_V2
 uniform sampler2D colortex2;
@@ -132,7 +139,11 @@ void main() {
 
     // Exposure correction
     blockColor *= vec3(exposure);
-    blockColor = custom_sigmoid(blockColor);
+    #if AFK_TONEMAP == 1
+        blockColor = afk_filmic(blockColor);
+    #else
+        blockColor = custom_sigmoid(blockColor);
+    #endif
 
     // Color-grading -----
     // DEVELOPER: If your post processing effect only involves the current pixel,
@@ -145,6 +156,19 @@ void main() {
     // Color-blindness correction
     #ifdef COLOR_BLINDNESS
         blockColor = color_blindness(blockColor);
+    #endif
+
+    #ifdef AFK_DEBUG_DEPTH
+        // AFK: which depth convention does the pack see? Left half: raw depth, so the sky is white
+        // with forward-Z and black with reverse-Z. Right half: red where the projection matrix
+        // looks reversed, green where it looks forward.
+        float rawDepth = texture2D(depthtex0, texcoord).r;
+        if(texcoord.x < 0.5) {
+            blockColor = vec3(pow(rawDepth, 64.0));
+        } else {
+            blockColor = AFK_DEPTH_IS_REVERSED(gbufferProjection) ? vec3(1.0, 0.0, 0.0) : vec3(0.0, 1.0, 0.0);
+            blockColor *= 0.25 + 0.75 * pow(rawDepth, 64.0);
+        }
     #endif
 
     #ifdef DEBUG_MODE

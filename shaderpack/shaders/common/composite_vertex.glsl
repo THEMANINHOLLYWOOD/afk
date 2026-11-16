@@ -83,7 +83,10 @@ void main() {
 
     float prev_exposure = texture2D(gaux3, vec2(0.5)).r;
 
+    float afkSceneLuma = exposure;
     exposure = (exp(-exposure) * 3.03) + 0.6;
+    // AFK: in dark scenes (caves, night) exposure opens up to AFK_DARK_EXPOSURE times MakeUp's maximum
+    exposure += (AFK_DARK_EXPOSURE - 1.0) * 3.63 * (1.0 - smoothstep(0.0, 0.15, afkSceneLuma));
     exposure = mix(exposure, prev_exposure, exp(-frameTime * 1.25));
 
     #if (VOL_LIGHT == 1 && !defined NETHER) || (VOL_LIGHT == 2 && defined SHADOW_CASTING && !defined NETHER)
@@ -94,6 +97,8 @@ void main() {
             vol_attenuation = 0.1 + (eyeBrightSmoothFloat.y * 0.002);
         }
 
+        // AFK: light shafts fade out when the camera is somewhere the sky can't reach
+        vol_attenuation *= smoothstep(0.15, 0.6, eyeBrightSmoothFloat.y * 0.004166666666666667);
         volumetricLightColor = dayBlend(LIGHT_SUNSET_COLOR, LIGHT_DAY_COLOR, LIGHT_NIGHT_COLOR) * 1.2 * vol_attenuation;
     #endif
 

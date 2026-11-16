@@ -84,7 +84,7 @@ vec3 fastRaymarch(vec3 direction, vec3 hitPoint, inout float infinite, float dit
     infinite = float(screenDepth > 0.9999);
 
     if (outOfEyeFlag) {
-        infinite = 1.0;
+        infinite = 2.0;  // AFK: left the screen, no data to reflect (sky fallback)
         return screenMarchPos;
     } else if (toFar) {
         if (screenDepth > 0.9999) {
@@ -93,7 +93,7 @@ vec3 fastRaymarch(vec3 direction, vec3 hitPoint, inout float infinite, float dit
         } else if (no_hidden_steps < 3 || screenDepth > hitPointDepth) {
             return screenMarchPos;
         } else {
-            infinite = 1.0;
+            infinite = 2.0;  // AFK: no usable hit (sky fallback)
             return vec3(1.0);
         }
     } else {
@@ -194,6 +194,12 @@ vec4 reflection_calc(vec3 fragpos, vec3 normal, vec3 reflected, inout float infi
 
     border = clamp(border - pow(pos.y, 10.0), 0.0, 1.0);
 
+    // AFK: a ray that left the screen or found nothing reflects the sky instead of a stray pixel
+    if (infinite > 1.5) {
+        border = 0.0;
+        infinite = 1.0;
+    }
+
     pos.x = abs(pos.x);
     if (pos.x > 1.0) {
         pos.x = 1.0 - (pos.x - 1.0);
@@ -273,6 +279,10 @@ vec4 cristal_reflection_calc(vec3 fragpos, vec3 normal, inout float infinite, fl
     float border_x = max(-fourthPow(abs(2.0 * pos.x - 1.0)) + 1.0, 0.0);
     float border_y = max(-fourthPow(abs(2.0 * pos.y - 1.0)) + 1.0, 0.0);
     float border = min(border_x, border_y);
+    if (infinite > 1.5) {  // AFK: sky fallback
+        border = 0.0;
+        infinite = 1.0;
+    }
 
     return vec4(texture2D(gaux1, pos.xy, 0.0).rgb, border);
 }

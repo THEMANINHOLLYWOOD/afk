@@ -36,3 +36,10 @@ float diffuse8 = diffuse4 * diffuse4;
 shadowDiffuse = diffuse8 * diffuse2;
 
 shadowDiffuse = clamp(shadowDiffuse, 0.0, 1.0);
+
+// AFK: no sunlight leaking into caves past the shadow map. Where the shadow map ends MakeUp
+// treats everything as lit; AFK fades to the sky-light estimate the shadowless path uses
+// (sky light ^ 10), so tunnels and overhangs far away stay dark.
+float afkSky2 = visibleSky * visibleSky;
+float afkSky4 = afkSky2 * afkSky2;
+directLightStrength *= mix(1.0, afkSky4 * afkSky4 * afkSky2, shadowDiffuse);

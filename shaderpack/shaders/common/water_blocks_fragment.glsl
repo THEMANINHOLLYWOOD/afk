@@ -249,6 +249,11 @@ void main() {
                 blockColor.rgb = 0.3 * waterTexture * realLight * tintColor.rgb;
             #endif
 
+            // AFK: water keeps a visible tint at night and in the dark (a floor, so daytime is unchanged)
+            vec3 afkWaterHue = WATER_COLOR / max(max(WATER_COLOR.r, WATER_COLOR.g), max(WATER_COLOR.b, 0.0001));
+            vec3 afkWaterFloor = afkWaterHue * (AFK_WATER_NIGHT_TINT * 0.06);
+            blockColor.rgb = max(blockColor.rgb, afkWaterFloor);
+
             blockColor = vec4(refraction(fragposition, blockColor.rgb, waterNormalBase), 1.0);
 
             #if WATER_TEXTURE == 1
@@ -259,6 +264,8 @@ void main() {
             #endif
 
             blockColor.rgb = water_shader(fragposition, surfaceNormal, blockColor.rgb, skyColorReflect, normalizedReflectWaterVector, fresnel, visibleSky, dither, directLightColor);
+            // AFK: shallow water over a dark bed still reads as water, more so at grazing angles
+            blockColor.rgb = max(blockColor.rgb, afkWaterFloor * (0.35 + 0.65 * fresnel));
 
         #endif
 

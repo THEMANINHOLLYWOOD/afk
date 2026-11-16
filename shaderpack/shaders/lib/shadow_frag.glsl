@@ -1,10 +1,13 @@
 /* MakeUp - shadow_frag.glsl
 Fragment shadow function.
 
+Modified for the AFK shader pack: soft shadows take one or more rings of MakeUp's four
+rotated taps (AFK_PCF_RINGS, set by the tier and frame time) for smoother penumbras.
+
 Javier Garduño - GNU Lesser General Public License v3.0
 */
 
-float get_shadow(vec3 the_shadow_pos, float dither) {
+float afk_shadow_ring(vec3 the_shadow_pos, float dither) {
     float shadow_sample = 1.0;
 
     #if SHADOW_TYPE == 0  // Pixelated
@@ -35,7 +38,7 @@ float get_shadow(vec3 the_shadow_pos, float dither) {
 
 #if defined COLORED_SHADOW
 
-    vec3 get_colored_shadow(vec3 the_shadow_pos, float dither) {
+    vec3 afk_colored_shadow_ring(vec3 the_shadow_pos, float dither) {
         #if SHADOW_TYPE == 0  // Pixelated
             float shadow_detector = 1.0;
             float shadow_black = 1.0;
@@ -151,4 +154,33 @@ float get_shadow(vec3 the_shadow_pos, float dither) {
         #endif
     }
 
+#endif
+
+// AFK: average AFK_PCF_RINGS rings, each rotated by the golden ratio.
+float get_shadow(vec3 the_shadow_pos, float dither) {
+    #if SHADOW_TYPE == 1
+        int rings = AFK_PCF_RINGS;
+        float sum = 0.0;
+        for (int r = 0; r < rings; r++) {
+            sum += afk_shadow_ring(the_shadow_pos, fract(dither + float(r) * 0.6180339887));
+        }
+        return sum / float(rings);
+    #else
+        return afk_shadow_ring(the_shadow_pos, dither);
+    #endif
+}
+
+#if defined COLORED_SHADOW
+    vec3 get_colored_shadow(vec3 the_shadow_pos, float dither) {
+        #if SHADOW_TYPE == 1
+            int rings = AFK_PCF_RINGS;
+            vec3 sum = vec3(0.0);
+            for (int r = 0; r < rings; r++) {
+                sum += afk_colored_shadow_ring(the_shadow_pos, fract(dither + float(r) * 0.6180339887));
+            }
+            return sum / float(rings);
+        #else
+            return afk_colored_shadow_ring(the_shadow_pos, dither);
+        #endif
+    }
 #endif

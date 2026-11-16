@@ -30,6 +30,18 @@
         );
     #endif
 
+    #ifdef AFK_BORDER_FOG
+        // AFK: border fog. Whatever the fog settings, terrain fades fully into the sky behind it
+        // before the edge of render distance, so chunk borders never show.
+        #ifdef DISTANT_HORIZONS
+            float afkFogFar = float(dhRenderDistance);
+        #elif defined VOXY
+            float afkFogFar = float(vxRenderDistance * 16);
+        #else
+            float afkFogFar = far;
+        #endif
+        frogAdjust = max(frogAdjust, smoothstep(AFK_BORDER_FOG_START * afkFogFar, 0.97 * afkFogFar, gl_FogFragCoord));
+    #endif
 #else
     #if defined NETHER
         #if NETHER_FOG_DISTANCE == 1
