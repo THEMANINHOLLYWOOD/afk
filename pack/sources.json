@@ -114,5 +114,12 @@
       "sha512": "713a20a8171c8249c30d9eb72342162754c627c7a86dc0971cb555faf43c322c181fd5546e0c770fc9ae922161ee846a7af951267c1d9a8a75af466a17e19d5e",
       "size": 42760
     }
+  ],
+  "builtFromRepo": [
+    {
+      "source": "shaderpack",
+      "path": "shaderpacks/AFK-Shaders.zip",
+      "note": "AFK's own shader pack (LGPL-3.0-or-later, based on MakeUp Ultra Fast), zipped from this repo into the modpack's overrides"
+    }
   ]
 }

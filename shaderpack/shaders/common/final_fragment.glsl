@@ -158,6 +158,24 @@ void main() {
         blockColor = color_blindness(blockColor);
     #endif
 
+    #ifdef AFK_DEBUG_STRESS
+        // AFK debug: burn GPU time so frames slow down and the adaptation has something to react to
+        float afkStress = 0.0;
+        for (int i = 0; i < 160; i++) {
+            afkStress += texture2D(colortex1, texcoord + vec2(float(i) * 0.0007, 0.0)).r;
+        }
+        blockColor += vec3(afkStress * 1e-7);
+    #endif
+
+    #ifdef AFK_DEBUG_PERF
+        // AFK debug, bottom left: afkPerf (green bar) and the volumetric light resolution (blue bar)
+        if(texcoord.x < 0.3 && texcoord.y < 0.03) {
+            blockColor = (texcoord.x / 0.3 < AFK_PERF) ? vec3(0.1, 1.0, 0.2) : vec3(0.12);
+        } else if(texcoord.x < 0.3 && texcoord.y < 0.06) {
+            blockColor = (texcoord.x / 0.3 < AFK_VL_SCALE) ? vec3(0.2, 0.45, 1.0) : vec3(0.12);
+        }
+    #endif
+
     #ifdef AFK_DEBUG_DEPTH
         // AFK: which depth convention does the pack see? Left half: raw depth, so the sky is white
         // with forward-Z and black with reverse-Z. Right half: red where the projection matrix
@@ -168,6 +186,9 @@ void main() {
         } else {
             blockColor = AFK_DEPTH_IS_REVERSED(gbufferProjection) ? vec3(1.0, 0.0, 0.0) : vec3(0.0, 1.0, 0.0);
             blockColor *= 0.25 + 0.75 * pow(rawDepth, 64.0);
+        }
+        if(texcoord.y > 0.95) {  // top strip: what the runtime guard decided (red = reversed)
+            blockColor = afkDepthReversed > 0.5 ? vec3(1.0, 0.0, 0.0) : vec3(0.0, 0.0, 1.0);
         }
     #endif
 

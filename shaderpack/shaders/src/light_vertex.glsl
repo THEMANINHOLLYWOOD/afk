@@ -107,7 +107,7 @@ float omniStrength = ((directLightStrength + 1.0) * 0.25) + 0.75;
 
     // AFK: night floor outdoors, a cool moonlit ambient. It is a floor (max), so it never
     // brightens dusk or day, and it scales with sky light, so it doesn't reach into caves.
-    omniLight = max(omniLight, vec3(0.55, 0.65, 0.85) * (AFK_NIGHT_LIGHT * 0.07 * visibleSky * (1.0 - dayNightMix)));
+    omniLight = max(omniLight, vec3(0.55, 0.65, 0.85) * (AFK_NIGHT_LIGHT * 0.14 * visibleSky * (1.0 - dayNightMix)));
 #endif
 
 // Avoid flat illumination in caves for entities

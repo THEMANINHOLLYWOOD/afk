@@ -1,15 +1,47 @@
 #Profiles
 ############################
-profile.no_effects=No effects
-profile.shadowless_low=Shadowless Low
-profile.shadowless_medium=Shadowless Medium
-profile.shadowless_high=Shadowless High
-profile.low=Low
-profile.medium=Medium
-profile.high=High
-profile.extremeplus=High (DoF)
+profile.POTATO=Potato
+profile.LOW=Low
+profile.MEDIUM=Medium
+profile.HIGH=High
+profile.ULTRA=Ultra
+profile.comment=AFK tiers, from Potato (no shadows, for weak laptops) to Ultra. Each sets AFK Tier and MakeUp's quality options together; you can still change any option afterwards. Inside a tier, AFK Adaptive bends quality to hold the frame rate.
 
-profile.comment=The "shadowless" profiles are designed for low-performance machines, disregarding the shadows. Traditional profiles slowly add higher quality shadows and more advanced heavy effects. Please experiment with the available options and find the best combination for you.
+option.AFK_TIER=AFK Tier
+option.AFK_TIER.comment=Master quality tier. Use the profile above to set everything at once; this value sets the budgets for ray-march steps, samples and volumetric light resolution.
+value.AFK_TIER.0=Potato
+value.AFK_TIER.1=Low
+value.AFK_TIER.2=Medium
+value.AFK_TIER.3=High
+value.AFK_TIER.4=Ultra
+option.AFK_ADAPTIVE=AFK Adaptive
+option.AFK_ADAPTIVE.comment=When frames get slow, use fewer ray-march steps and samples and render volumetric light at a lower resolution, before the frame rate drops below 24. Comes back over a few seconds once there is headroom.
+screen.AFK_SCREEN=AFK
+screen.AFK_SCREEN.comment=Brightness floor, exposure, tonemap, border fog and water tint.
+option.AFK_CAVE_LIGHT=Cave Brightness
+option.AFK_CAVE_LIGHT.comment=The least light a block gets where the sky can't reach. 0 is MakeUp's original darkness.
+option.AFK_NIGHT_LIGHT=Night Brightness
+option.AFK_NIGHT_LIGHT.comment=Extra moonlit ambient light outdoors at night. 0 is MakeUp's original night.
+option.AFK_DARK_EXPOSURE=Dark Exposure
+option.AFK_DARK_EXPOSURE.comment=How far auto-exposure opens up in dark places, as a multiple of MakeUp's maximum. 1.00 is MakeUp's original.
+option.AFK_TONEMAP=Tonemap
+option.AFK_TONEMAP.comment=AFK filmic keeps the colour of bright highlights and a little more detail in dark areas. MakeUp is the original curve.
+value.AFK_TONEMAP.0=MakeUp
+value.AFK_TONEMAP.1=AFK filmic
+option.AFK_BORDER_FOG=Border Fog
+option.AFK_BORDER_FOG.comment=Fades terrain into the sky before the edge of render distance, so chunk borders never show.
+option.AFK_BORDER_FOG_START=Border Fog Start
+option.AFK_BORDER_FOG_START.comment=Where border fog starts, as a fraction of render distance.
+option.AFK_WATER_NIGHT_TINT=Water Night Tint
+option.AFK_WATER_NIGHT_TINT.comment=Keeps water tinted and visible at night and in the dark. 0 is MakeUp's original.
+option.AFK_DEBUG_DEPTH=Debug: Depth
+option.AFK_DEBUG_DEPTH.comment=Development view of the depth convention. Leave off.
+option.AFK_DEBUG_PERF=Debug: Adaptation
+option.AFK_DEBUG_PERF.comment=Bars in the bottom left: green is the frame-time quality factor, blue the volumetric light resolution. Leave off.
+option.AFK_DEBUG_STRESS=Debug: Stress
+option.AFK_DEBUG_STRESS.comment=Deliberately slows the GPU to test the adaptation. Leave off.
+
+
 
 #About
 #############################

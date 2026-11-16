@@ -43,6 +43,18 @@
 
   ![The same unlit stone wall with the shader's default cave lighting and with AFK's](docs/images/cave-light.png)
 
+## AFK Shaders
+
+AFK has its own shader pack in [`shaderpack/`](shaderpack/), built on [MakeUp Ultra Fast](https://github.com/javiergcim/MakeUpUltraFast) by Javier Garduño. The modpack ships it as `shaderpacks/AFK-Shaders.zip` next to Complementary; pick it in Video Settings > Shader Packs.
+
+- **One setting:** Potato, Low, Medium, High or Ultra. AFK's 24 fps ladder steps through these.
+- **Holds the frame rate on its own first:** when frames slow down, the pack takes fewer ray-march steps and samples and drops its volumetric light to a lower resolution, within half a second, then recovers over a few seconds.
+- **Made for Macs:** OpenGL 4.1 only, nothing that Apple's drivers refuse.
+- **Readable caves and nights:** a brightness floor, auto-exposure that opens up in the dark, a filmic tonemap, and water that stays tinted at night.
+- **Soft sun shadows that don't leak into caves, and border fog** that hides chunk edges.
+
+Details, options and credits are in [shaderpack/README.md](shaderpack/README.md). The shader pack is LGPL-3.0-or-later (it is a modified MakeUp); the rest of AFK is MIT.
+
 ## Install
 
 You need:
@@ -86,7 +98,7 @@ Everything runs on your computer. The mod talks to Herobrine's brain over a loca
 - Baritone's route planner knows the layout of terrain the game has loaded (that's how pathfinding works). Finding ores is legit, but routes aren't limited to what's been seen.
 - On a shared server or Realm, Herobrine plays as you, so follow the server's rules about automation.
 - Helpers only exist in worlds running on your computer (singleplayer, or Open to LAN for friends who also have AFK): a server or Realm decides what lives in its world. They know a small recipe book (the survival basics), and they can't build structures, trade, enchant or brew. If you later open the world without AFK, the helpers are gone.
-- A custom AFK shader pack is planned; research notes are in [docs/shader-research.md](docs/shader-research.md).
+- AFK Shaders is a first version. Colored block light, 3D-layered clouds, LabPBR and Distant Horizons tuning are not in it yet; the plan is in [docs/shader-research.md](docs/shader-research.md).
 
 ## Build from source
 
@@ -102,8 +114,8 @@ The mod compiles straight against the game jar (26.x ships readable names), so n
 
 ## Credits
 
-AFK links to these projects; nothing of theirs is redistributed in this repository. Thank you to their authors.
-[Fabric](https://fabricmc.net) · [Baritone](https://github.com/cabaletta/baritone) (LGPL-3.0) · [Sodium](https://modrinth.com/mod/sodium) · [Iris](https://modrinth.com/mod/iris) · [Entity Model Features](https://modrinth.com/mod/entity-model-features) · [Entity Texture Features](https://modrinth.com/mod/entitytexturefeatures) · [Mod Menu](https://modrinth.com/mod/modmenu) · [Complementary Shaders](https://modrinth.com/shader/complementary-unbound) · [BSL](https://modrinth.com/shader/bsl-shaders) · [Photon](https://modrinth.com/shader/photon-shader) · [Faithful](https://modrinth.com/resourcepack/faithful-32x) · [Fresh Animations](https://modrinth.com/resourcepack/fresh-animations) · Fast Better Grass · Low On Fire · Default Dark Mode.
+AFK links to these projects; nothing of theirs is redistributed in this repository, except MakeUp Ultra Fast, which AFK Shaders modifies under its licence. Thank you to their authors.
+[Fabric](https://fabricmc.net) · [Baritone](https://github.com/cabaletta/baritone) (LGPL-3.0) · [Sodium](https://modrinth.com/mod/sodium) · [Iris](https://modrinth.com/mod/iris) · [Entity Model Features](https://modrinth.com/mod/entity-model-features) · [Entity Texture Features](https://modrinth.com/mod/entitytexturefeatures) · [Mod Menu](https://modrinth.com/mod/modmenu) · [MakeUp Ultra Fast](https://github.com/javiergcim/MakeUpUltraFast) (LGPL-3.0, modified in `shaderpack/`) · [Complementary Shaders](https://modrinth.com/shader/complementary-unbound) · [BSL](https://modrinth.com/shader/bsl-shaders) · [Photon](https://modrinth.com/shader/photon-shader) · [Faithful](https://modrinth.com/resourcepack/faithful-32x) · [Fresh Animations](https://modrinth.com/resourcepack/fresh-animations) · Fast Better Grass · Low On Fire · Default Dark Mode.
 The cinematic camera's shot language follows the film camera in [Icarus](https://justkeepflying.com).
 
-AFK's own code is MIT licensed.
+AFK's own code is MIT licensed, except `shaderpack/`, which is LGPL-3.0-or-later like the MakeUp code it modifies.

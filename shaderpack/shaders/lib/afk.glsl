@@ -31,6 +31,8 @@ GNU Lesser General Public License v3.0 or later
 
 // Debug view for development: shows which depth convention the pack sees.
 // #define AFK_DEBUG_DEPTH // Debug: depth convention view
+// #define AFK_DEBUG_PERF // Debug: frame-time adaptation bars
+// #define AFK_DEBUG_STRESS // Debug: deliberately slow GPU load, to watch the adaptation react
 
 // ---------------------------------------------------------------------------------------------
 // Mac-safe path. Apple's OpenGL stops at 4.1: no compute shaders, no SSBOs, no image
@@ -132,9 +134,13 @@ uniform float afkPerf;
 #endif
 
 // ---------------------------------------------------------------------------------------------
-// Depth. Minecraft 26.x renders with reverse-Z; Iris 1.11.4+ hands packs depth that behaves like
-// classic forward-Z in [0, 1] (1 = far plane) and keeps the projection matrices consistent with
-// it. The pack never assumes either: every depth read goes through afk_depth(), which flips
-// reverse-Z values when the projection matrix says depth is reversed (gbufferProjection[2][2]
-// is about -1 for forward-Z and about 0 or positive for reverse-Z).
+// Depth. Minecraft 26.x renders with reverse-Z. Iris 1.11.4+ keeps reverse-Z for the game but
+// hands shader packs classic forward-Z: depth textures read 1.0 at the far plane and the
+// projection matrices match (checked on Iris 1.11.7 / 26.3 / macOS with AFK_DEBUG_DEPTH).
+// In case a later Iris, its Vulkan path or a LOD mod passes reverse-Z through, afkDepthReversed
+// (shaders.properties: 1 when gbufferProjection[2][2] is not about -1) flips depth back to
+// forward-Z in ld(), the linear-depth helper behind sky detection, fog, AO and volumetric light
+// range. Other raw depth reads still assume forward-Z; only the forward path is tested.
+uniform float afkDepthReversed;
+#define AFK_FORWARD_DEPTH(d) mix((d), 1.0 - (d), afkDepthReversed)
 #define AFK_DEPTH_IS_REVERSED(p) ((p)[2][2] > -0.5)
